@@ -7,6 +7,8 @@ import com.azure.tools.codesnippetplugin.implementation.SnippetReplacer;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
@@ -14,9 +16,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- * Base Mojo for the codesnippet plugin.
+ * Mojo for injecting codesnippets.
  */
-public abstract class SnippetBaseMojo extends AbstractMojo {
+@Mojo(name = "inject-codesnippet", threadSafe = true, defaultPhase = LifecyclePhase.PROCESS_SOURCES)
+public class InjectCodeSnippet extends AbstractMojo {
     /**
      * Default glob to match codesnippet files.
      */
@@ -32,7 +35,7 @@ public abstract class SnippetBaseMojo extends AbstractMojo {
      * <p>
      * Default value is {@link #DEFAULT_CODESNIPPET_GLOB}.
      */
-    @Parameter(property = "codesnippetGlob", defaultValue = DEFAULT_CODESNIPPET_GLOB)
+    @Parameter(property = "codesnippet.codesnippetGlob", defaultValue = DEFAULT_CODESNIPPET_GLOB)
     private String codesnippetGlob;
 
     /**
@@ -40,7 +43,7 @@ public abstract class SnippetBaseMojo extends AbstractMojo {
      * <p>
      * Default value is {@code ${project.basedir}/src/samples/java}.
      */
-    @Parameter(property = "codesnippetRootDirectory", defaultValue = "${project.basedir}/src/samples/java")
+    @Parameter(property = "codesnippet.codesnippetRootDirectory", defaultValue = "${project.basedir}/src/samples/java")
     private File codesnippetRootDirectory;
 
     /**
@@ -48,7 +51,7 @@ public abstract class SnippetBaseMojo extends AbstractMojo {
      * <p>
      * Default value is {@link #DEFAULT_SOURCE_GLOB}.
      */
-    @Parameter(property = "sourceGlob", defaultValue = DEFAULT_SOURCE_GLOB)
+    @Parameter(property = "codesnippet.sourceGlob", defaultValue = DEFAULT_SOURCE_GLOB)
     private String sourceGlob;
 
     /**
@@ -56,7 +59,7 @@ public abstract class SnippetBaseMojo extends AbstractMojo {
      * <p>
      * Default value is {@code ${project.basedir}/src/main/java}.
      */
-    @Parameter(property = "sourceRootDirectory", defaultValue = "${project.basedir}/src/main/java")
+    @Parameter(property = "codesnippet.sourceRootDirectory", defaultValue = "${project.basedir}/src/main/java")
     private File sourceRootDirectory;
 
     /**
@@ -64,7 +67,7 @@ public abstract class SnippetBaseMojo extends AbstractMojo {
      * <p>
      * Default value is true.
      */
-    @Parameter(property = "includeSource", defaultValue = "true")
+    @Parameter(property = "codesnippet.includeSource", defaultValue = "true")
     private boolean includeSource;
 
     /**
@@ -72,7 +75,7 @@ public abstract class SnippetBaseMojo extends AbstractMojo {
      * <p>
      * Default value is {@code ${project.basedir}/README.md}.
      */
-    @Parameter(property = "readmePath", defaultValue = "${project.basedir}/README.md")
+    @Parameter(property = "codesnippet.readmePath", defaultValue = "${project.basedir}/README.md")
     private File readmePath;
 
     /**
@@ -80,7 +83,7 @@ public abstract class SnippetBaseMojo extends AbstractMojo {
      * <p>
      * Default value is true.
      */
-    @Parameter(property = "includeReadme", defaultValue = "true")
+    @Parameter(property = "codesnippet.includeReadme", defaultValue = "true")
     private boolean includeReadme;
 
     /**
@@ -88,7 +91,7 @@ public abstract class SnippetBaseMojo extends AbstractMojo {
      * <p>
      * Default value is {@code 120} characters.
      */
-    @Parameter(property = "maxLineLength", defaultValue = "120")
+    @Parameter(property = "codesnippet.maxLineLength", defaultValue = "120")
     private int maxLineLength;
 
     /**
@@ -96,7 +99,7 @@ public abstract class SnippetBaseMojo extends AbstractMojo {
      * <p>
      * Default value is false.
      */
-    @Parameter(property = "skip", defaultValue = "false")
+    @Parameter(property = "codesnippet.skip", defaultValue = "false")
     private boolean skip;
 
     /**
@@ -158,7 +161,7 @@ public abstract class SnippetBaseMojo extends AbstractMojo {
      *
      * @return Whether the README should be targeted for codesnippet injection or validation.
      */
-    protected  boolean isIncludeReadme() {
+    protected boolean isIncludeReadme() {
         return includeReadme;
     }
 
@@ -180,13 +183,8 @@ public abstract class SnippetBaseMojo extends AbstractMojo {
         return skip;
     }
 
-    /**
-     * Runs codesnippets for the specified {@link ExecutionMode}.
-     *
-     * @param executionMode The codesnippet execution mode.
-     * @throws MojoExecutionException If codesnippets fails to run successfully.
-     */
-    protected void executeCodesnippet(ExecutionMode executionMode) throws MojoExecutionException {
+    @Override
+    public void execute() throws MojoExecutionException {
         Log log = getLog();
 
         if (isSkip()) {
@@ -218,28 +216,14 @@ public abstract class SnippetBaseMojo extends AbstractMojo {
         int maxLineLength = getMaxLineLength();
         log.debug(String.format("Using max line length: %d", maxLineLength));
 
-        if (executionMode == ExecutionMode.UPDATE) {
-            try {
-                log.debug("Beginning codesnippet update execution.");
-                SnippetReplacer.updateCodesnippets(codesnippetRootDirectory, codesnippetGlob, sourcesRootDirectory,
-                    sourcesGlob, includeSource, readmePath, includeReadme, maxLineLength, log);
-                log.debug("Completed codesnippet update execution.");
-            } catch (IOException ex) {
-                log.error(ex);
-                throw new MojoExecutionException("Failed to update codesnippets.", ex);
-            }
-        } else if (executionMode == ExecutionMode.VERIFY) {
-            try {
-                log.debug("Beginning codesnippet verification execution.");
-                SnippetReplacer.verifyCodesnippets(codesnippetRootDirectory, codesnippetGlob, sourcesRootDirectory,
-                    sourcesGlob, includeSource, readmePath, includeReadme, maxLineLength, log);
-                log.debug("Completed codesnippet verification execution.");
-            } catch (IOException ex) {
-                log.error(ex);
-                throw new MojoExecutionException("Failed to verify codesnippets.", ex);
-            }
-        } else {
-            throw new MojoExecutionException("Unsupported execution mode '" + executionMode + "' provided.");
+        try {
+            log.debug("Beginning codesnippet injection.");
+            SnippetReplacer.injectCodesnippets(codesnippetRootDirectory, codesnippetGlob, sourcesRootDirectory,
+                sourcesGlob, includeSource, readmePath, includeReadme, maxLineLength, log);
+            log.debug("Completed codesnippet injection.");
+        } catch (IOException ex) {
+            log.error(ex);
+            throw new MojoExecutionException("Failed to inject codesnippets.", ex);
         }
     }
 }

@@ -6,7 +6,6 @@ package com.azure.tools.codesnippetplugin.implementation;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -17,24 +16,28 @@ import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class SnippetReplacer {
+    private static final String LINE_SEPARATOR = System.lineSeparator();
+
     static final Pattern SNIPPET_DEF_BEGIN =
-        Pattern.compile("\\s*\\/\\/\\s*BEGIN\\:\\s+([a-zA-Z0-9\\.\\#\\-\\_]*)\\s*");
-    static final Pattern SNIPPET_DEF_END = Pattern.compile("\\s*\\/\\/\\s*END\\:\\s+([a-zA-Z0-9\\.\\#\\-\\_]*)\\s*");
+        Pattern.compile("\\s*//\\s*BEGIN:\\s*([a-zA-Z0-9.#\\-_]*)\\s*");
+    static final Pattern SNIPPET_DEF_END = Pattern.compile("\\s*//\\s*END:\\s*([a-zA-Z0-9.#\\-_]*)\\s*");
     static final Pattern SNIPPET_SRC_CALL_BEGIN =
-        Pattern.compile("(\\s*)\\*?\\s*<!--\\s+src_embed\\s+([a-zA-Z0-9\\.\\#\\-\\_]*)\\s*-->");
+        Pattern.compile("(\\s*)\\*\\s*<!--\\s*src_embed\\s+([a-zA-Z0-9.#\\-_]*)\\s*-->");
     static final Pattern SNIPPET_SRC_CALL_END =
-        Pattern.compile("(\\s*)\\*?\\s*<!--\\s+end\\s+([a-zA-Z0-9\\.\\#\\-\\_]*)\\s*-->");
-    static final Pattern SNIPPET_README_CALL_BEGIN =
-        Pattern.compile("```(\\s*)?java\\s+([a-zA-Z0-9\\.\\#\\-\\_]*)\\s*");
+        Pattern.compile("(\\s*)\\*\\s*<!--\\s*end\\s+([a-zA-Z0-9.#\\-_]*)\\s*-->");
+    static final Pattern SNIPPET_README_CALL_BEGIN = Pattern.compile("```(\\s*)?java\\s+([a-zA-Z0-9.#\\-_]*)\\s*");
     static final Pattern SNIPPET_README_CALL_END = Pattern.compile("```");
     static final Pattern WHITESPACE_EXTRACTION = Pattern.compile("(\\s*)(.*)");
     static final Pattern END_OF_LINE_WHITESPACES = Pattern.compile("[\\s]+$");
@@ -56,86 +59,15 @@ public final class SnippetReplacer {
     }};
 
     /**
-     * The "verification" operation encapsulated by this function is as follows.
-     *
-     * 1. Scan under the target direction for all discovered code snippet DEFINITIONS 2. Examine all snippet CALLS,
-     * finding where updates are needed. 3. Report all discovered snippets in need of update as well as all bad snippet
-     * calls
-     *
-     * A "bad snippet call" is simply calling for a snippet whose Id has no definition.
-     *
-     * See {@link #updateCodesnippets(Path, String, Path, String, boolean, Path, boolean, int, Log)} for details on
-     * actually defining and calling snippets.
-     */
-    public static void verifyCodesnippets(Path codesnippetRootDirectory, String codesnippetGlob, Path sourcesRootDirectory,
-        String sourcesGlob, boolean includeSources, Path readmePath, boolean includeReadme, int maxLineLength,
-        Log logger) throws IOException, MojoExecutionException {
-        // Neither sources nor README is included in the update, there is no work to be done.
-        if (!includeSources && !includeReadme) {
-            logger.debug("Neither sources or README were included. No codesnippet updating will be done.");
-            return;
-        }
-
-        // Get the files that match the codesnippet glob and are contained in the codesnippet root directory.
-        List<Path> codesnippetFiles = globFiles(codesnippetRootDirectory, codesnippetGlob, false);
-
-        // Only get the source files if sources are included in the update.
-        List<Path> sourceFiles = Collections.emptyList();
-        if (includeSources) {
-            // Get the files that match the sources glob and are contained in the sources root directory.
-            sourceFiles = globFiles(sourcesRootDirectory, sourcesGlob, true);
-        }
-
-        List<VerifyResult> snippetsNeedingUpdate = new ArrayList<>();
-        List<VerifyResult> badSnippetCalls = new ArrayList<>();
-
-        // scan the sample files for all the snippet files
-        Map<String, List<String>> foundSnippets = getAllSnippets(codesnippetFiles);
-
-        // walk across all the java files, run UpdateSrcSnippets
-        if (includeSources) {
-            for (Path sourcePath : sourceFiles) {
-                SnippetOperationResult<List<VerifyResult>> sourcesResult = verifySnippets(sourcePath,
-                    SNIPPET_SRC_CALL_BEGIN, SNIPPET_SRC_CALL_END, foundSnippets, "<pre>", "</pre>", 1, "* ", false);
-                snippetsNeedingUpdate.addAll(sourcesResult.result);
-                badSnippetCalls.addAll(sourcesResult.errorList);
-            }
-        }
-
-        // now find folderToVerify/README.md
-        // run Update ReadmeSnippets on that
-        if (includeReadme) {
-            SnippetOperationResult<List<VerifyResult>> readmeResult = verifySnippets(readmePath,
-                SNIPPET_README_CALL_BEGIN, SNIPPET_README_CALL_END, foundSnippets, "", "", 0, "", true);
-            snippetsNeedingUpdate.addAll(readmeResult.result);
-            badSnippetCalls.addAll(readmeResult.errorList);
-        }
-
-        if (snippetsNeedingUpdate.size() > 0 || badSnippetCalls.size() > 0) {
-            for (VerifyResult result : snippetsNeedingUpdate) {
-                logger.error(String.format("SnippetId %s needs update in file %s.", result.snippetWithIssues,
-                    result.readmeLocation));
-            }
-
-            for (VerifyResult result : badSnippetCalls) {
-                logger.error(String.format("Unable to locate snippet with Id of %s. Reference in %s",
-                    result.snippetWithIssues, result.readmeLocation));
-            }
-
-            throw new MojoExecutionException("Snippet-Replacer has encountered errors, check above output for details.");
-        }
-    }
-
-    /**
-     * This method encapsulates the "update" lifecycle of the snippet-replacer plugin.
+     * Finds codesnippet definitions and injects them into Javadocs and READMEs.
      * <p>
-     * Given a root folder, the plugin will scan for snippet DEFINITIONS or snippet CALLS. Once a snippet definition
-     * index has been formulated, all java files located under the target directory will have snippet CALLS updated with
-     * the source from the DEFINITIONS.
+     * This method effectively updates and verifies codesnippet injections. First, it finds all codesnippet definitions
+     * found in the files that match {@code codesnippetGlob} contained in the directory {@code
+     * codesnippetRootDirectory}. Codesnippet definitions are denoted by  {@code BEGIN <alias>} and {@code END <alias>}
+     * single line comments.
      *
-     * <p><strong>Snippet Definition</strong></p>
+     * <p><strong>Codesnippet Example</strong></p>
      *
-     * A snippet definition is delineated by BEGIN and END comments directly in your java source. Example:
      * <pre>
      * // BEGIN: com.azure.data.applicationconfig.configurationclient.instantiation
      * ConfigurationClient configurationClient = new ConfigurationClientBuilder&#40;&#41;
@@ -144,21 +76,36 @@ public final class SnippetReplacer {
      * // END: com.azure.data.applicationconfig.configurationclient.instantiation
      * </pre>
      *
-     * <p><strong>Calling a Snippet</strong></p>
+     * <p>
+     * Then, all files that match {@code sourcesGlob} contained in the directory {@code sourcesRootDirectory} and the
+     * README file {@code readmePath} have codesnippets injected based on the matching aliases. Javadocs and READMEs use
+     * different codesnippet injection patterns, Javadocs use {@code <!-- src_embed <alias> -->} and {@code <!-- end
+     * <alias> -->} and READMEs use {@code ```java <alias> ```}.
      *
-     * From within a javadoc comment, embed an html comment &#47;* &lt;!-- src_embed
-     * com.azure.data.applicationconfig.configurationclient.instantiation --&gt; ConfigurationClient configurationClient
-     * = new ConfigurationClientBuilder&#40;&#41; .connectionString&#40;connectionString&#41; .buildClient&#40;&#41;;
-     * &lt;!-- end com.azure.data.applicationconfig.configurationclient.instantiation --&gt; Other javadoc details
-     * perhaps. *&#47; public void myfunction()
+     * <p><strong>Javadoc Example</strong></p>
+     *
+     * <pre>
+     * <!-- src_embed com.azure.data.applicationconfig.configurationclient.instantiation -->
+     * <!-- end com.azure.data.applicationconfig.configurationclient.instantiation -->
      * </pre>
      *
-     * After finishing update operations, this function will throw a MojoExecutionException after reporting all snippet
-     * CALLS that have no DEFINITION.
+     * <p><strong>README Example</strong></p>
+     *
+     * <pre>
+     * ```java com.azure.data.applicationconfig.configurationclient.instantiation
+     * ```
+     * </pre>
+     *
+     * <p>
+     * Finally, at the end of injecting codesnippets a validation check will be made to ensure that all codesnippet
+     * replacement tags were matched by codesnippet definition tags. If there were any missing codesnippet tags the
+     * plugin will fail.
+     * <p>
+     * If {@code includeSources} and {@code includeReadme} are both false this call is effectively a no-op.
      */
-    public static void updateCodesnippets(Path codesnippetRootDirectory, String codesnippetGlob, Path sourcesRootDirectory,
-        String sourcesGlob, boolean includeSources, Path readmePath, boolean includeReadme, int maxLineLength,
-        Log logger) throws IOException, MojoExecutionException {
+    public static void injectCodesnippets(Path codesnippetRootDirectory, String codesnippetGlob,
+        Path sourcesRootDirectory, String sourcesGlob, boolean includeSources, Path readmePath, boolean includeReadme,
+        int maxLineLength, Log logger) throws IOException, MojoExecutionException {
         // Neither sources nor README is included in the update, there is no work to be done.
         if (!includeSources && !includeReadme) {
             logger.debug("Neither sources or README were included. No codesnippet updating will be done.");
@@ -168,241 +115,98 @@ public final class SnippetReplacer {
         // Get the files that match the codesnippet glob and are contained in the codesnippet root directory.
         List<Path> codesnippetFiles = globFiles(codesnippetRootDirectory, codesnippetGlob, false);
 
-        // Only get the source files if sources are included in the update.
-        List<Path> sourceFiles = Collections.emptyList();
+        // Scan the codesnippet files for all codesnippet definitions.
+        Map<String, CodesnippetDefinition> foundSnippets = getAllSnippets(codesnippetFiles);
+
+        // Maintain the known missing and bad codesnippets.
+        // Bad codesnippets are those that don't match the expected rules, such as max line length.
+        List<VerifyResult> missingCodesnippets = new ArrayList<>();
+        List<VerifyResult> badCodesnippets = new ArrayList<>();
+
+        // Only get the source files if sources are included in the injection.
         if (includeSources) {
             // Get the files that match the sources glob and are contained in the sources root directory.
-            sourceFiles = globFiles(sourcesRootDirectory, sourcesGlob, true);
-        }
-
-        // scan the sample files for all the snippet files
-        Map<String, List<String>> foundSnippets = getAllSnippets(codesnippetFiles);
-
-        List<VerifyResult> badSnippetCalls = new ArrayList<>();
-
-        // walk across all the java files, run UpdateSrcSnippets
-        if (includeSources) {
-            for (Path sourcePath : sourceFiles) {
-                badSnippetCalls.addAll(updateSourceCodeSnippets(sourcePath, foundSnippets));
+            for (Path sourceFile : globFiles(sourcesRootDirectory, sourcesGlob, true)) {
+                // Process the source file and replace all codesnippet replacement tags with their definition.
+                InjectionResult sourceInjectionResult = injectSnippets(sourceFile,
+                    SNIPPET_SRC_CALL_BEGIN, SNIPPET_SRC_CALL_END, foundSnippets, "<pre>", "</pre>", 1, "* ", false);
+                sourceInjectionResult.updateSourceFile(sourceFile);
+                missingCodesnippets.addAll(sourceInjectionResult.getMissingCodesnippets());
+                badCodesnippets.addAll(sourceInjectionResult.getBadCodesnippets());
             }
         }
 
-        // now find folderToVerify/README.md
-        // run Update ReadmeSnippets on that
+        // Only process the README if the README is included in the injection.
         if (includeReadme) {
-            badSnippetCalls.addAll(updateReadmeCodesnippets(readmePath, foundSnippets));
+            // Process the README and replace all codesnippet replacement tags with their definition.
+            InjectionResult readmeInjectionResult = injectSnippets(readmePath,
+                SNIPPET_README_CALL_BEGIN, SNIPPET_README_CALL_END, foundSnippets, "", "", 0, "", true);
+            readmeInjectionResult.updateSourceFile(readmePath);
+            missingCodesnippets.addAll(readmeInjectionResult.getMissingCodesnippets());
+            badCodesnippets.addAll(readmeInjectionResult.getBadCodesnippets());
         }
 
-        if (badSnippetCalls.size() > 0) {
-            for (VerifyResult result : badSnippetCalls) {
-                logger.error(String.format("Unable to locate snippet with Id of %s. Reference in %s",
-                    result.snippetWithIssues, result.readmeLocation.toString()));
+        if (missingCodesnippets.size() > 0 || badCodesnippets.size() > 0) {
+            StringBuilder errorMessage = new StringBuilder();
+
+            for (VerifyResult result : missingCodesnippets) {
+                errorMessage.append("Unable to locate codesnippet with alias '")
+                    .append(result.getCodesnippetAlias())
+                    .append("' referenced in '")
+                    .append(result.getSourceFile())
+                    .append(":")
+                    .append(result.getLineNumber())
+                    .append("'.")
+                    .append(LINE_SEPARATOR);
             }
-            throw new MojoExecutionException("Discovered snippets in need of updating. "
-                + "Please run this plugin in update mode and commit the changes.");
+
+            for (VerifyResult result : badCodesnippets) {
+                errorMessage.append("Codesnippet with alias '")
+                    .append(result.getCodesnippetAlias())
+                    .append("' referenced in '")
+                    .append(result.getSourceFile())
+                    .append(":")
+                    .append(result.getLineNumber())
+                    .append("' didn't follow codesnippet rules.")
+                    .append(LINE_SEPARATOR);
+            }
+
+            throw new MojoExecutionException("Codesnippet injection encountered errors:" + LINE_SEPARATOR
+                + errorMessage);
         }
     }
 
-    static List<VerifyResult> updateReadmeCodesnippets(Path file, Map<String, List<String>> snippetMap)
-        throws IOException {
-        SnippetOperationResult<StringBuilder> opResult = updateSnippets(file, SNIPPET_README_CALL_BEGIN,
-            SNIPPET_README_CALL_END, snippetMap, "", "", 0, "", true);
-
-        if (opResult.result != null) {
-            try (BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
-                writer.write(opResult.result.toString());
-            }
-        }
-
-        return opResult.errorList;
-    }
-
-    static List<VerifyResult> updateSourceCodeSnippets(Path file, Map<String, List<String>> snippetMap)
-        throws IOException {
-        SnippetOperationResult<StringBuilder> opResult = updateSnippets(file, SNIPPET_SRC_CALL_BEGIN,
-            SNIPPET_SRC_CALL_END, snippetMap, "<pre>", "</pre>", 1, "* ", false);
-
-        if (opResult.result != null) {
-            try (BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
-                writer.write(opResult.result.toString());
-            }
-        }
-
-        return opResult.errorList;
-    }
-
-    static SnippetOperationResult<StringBuilder> updateSnippets(Path file, Pattern beginRegex, Pattern endRegex,
-        Map<String, List<String>> snippetMap, String preFence, String postFence, int prefixGroupNum,
-        String additionalLinePrefix, boolean disableEscape) throws IOException {
-        List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
-
-        List<VerifyResult> badSnippetCalls = new ArrayList<>();
-        StringBuilder modifiedLines = new StringBuilder();
-        boolean inSnippet = false;
-        boolean needsAmend = false;
-        String lineSep = System.lineSeparator();
-        String currentSnippetId = "";
-
-        for (String line : lines) {
-            Matcher begin = beginRegex.matcher(line);
-            Matcher end = endRegex.matcher(line);
-
-            if (begin.matches()) {
-                modifiedLines.append(line).append(lineSep);
-                currentSnippetId = begin.group(2);
-                inSnippet = true;
-            } else if (end.matches()) {
-                if (inSnippet) {
-                    List<String> newSnippets;
-                    if (snippetMap.containsKey(currentSnippetId)) {
-                        newSnippets = snippetMap.get(currentSnippetId);
-                    } else {
-                        badSnippetCalls.add(new VerifyResult(file, currentSnippetId));
-                        needsAmend = true;
-                        inSnippet = false;
-                        continue;
-                    }
-
-                    List<String> modifiedSnippets = new ArrayList<>();
-
-                    // We use this additional prefix because in src snippet cases we need to prespace
-                    // for readme snippet cases we DONT need the prespace at all.
-                    String linePrefix = prefixFunction(end, prefixGroupNum, additionalLinePrefix);
-
-                    for (String snippet : respaceLines(newSnippets)) {
-                        String moddedSnippet = disableEscape ? snippet : escapeString(snippet);
-                        modifiedSnippets.add(moddedSnippet.length() == 0
-                            ? END_OF_LINE_WHITESPACES.matcher(linePrefix).replaceAll("") + lineSep
-                            : linePrefix + moddedSnippet + lineSep);
-                    }
-
-                    if (preFence != null && preFence.length() > 0) {
-                        modifiedLines.append(linePrefix).append(preFence).append(lineSep);
-                    }
-
-                    modifiedSnippets.forEach(modifiedLines::append);
-
-                    if (postFence != null && postFence.length() > 0) {
-                        modifiedLines.append(linePrefix).append(postFence).append(lineSep);
-                    }
-
-                    modifiedLines.append(line).append(lineSep);
-                    needsAmend = true;
-                    inSnippet = false;
-                }
-            } else if (!inSnippet) {
-                // Only modify the lines if not in the codesnippet.
-                modifiedLines.append(line).append(lineSep);
-            }
-        }
-
-        if (needsAmend) {
-            return new SnippetOperationResult<>(modifiedLines, badSnippetCalls);
-        } else {
-            return new SnippetOperationResult<>(null, badSnippetCalls);
-        }
-    }
-
-    static SnippetOperationResult<List<VerifyResult>> verifySnippets(Path file, Pattern beginRegex, Pattern endRegex,
-        Map<String, List<String>> snippetMap, String preFence, String postFence, int prefixGroupNum,
-        String additionalLinePrefix, boolean disableEscape) throws IOException {
-        List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
-
-        boolean inSnippet = false;
-        String lineSep = System.lineSeparator();
-        List<String> currentSnippetSet = null;
-        List<VerifyResult> foundIssues = new ArrayList<>();
-        List<VerifyResult> badSnippetCalls = new ArrayList<>();
-        String currentSnippetId = "";
-
-        for (String line : lines) {
-            Matcher begin = beginRegex.matcher(line);
-            Matcher end = endRegex.matcher(line);
-
-            if (begin.matches()) {
-                currentSnippetId = begin.group(2);
-                inSnippet = true;
-                currentSnippetSet = new ArrayList<>();
-            } else if (end.matches()) {
-                if (inSnippet) {
-                    List<String> newSnippets;
-                    if (snippetMap.containsKey(currentSnippetId)) {
-                        newSnippets = snippetMap.get(currentSnippetId);
-                    } else {
-                        badSnippetCalls.add(new VerifyResult(file, currentSnippetId));
-                        inSnippet = false;
-                        currentSnippetSet = null;
-                        continue;
-                    }
-                    List<String> modifiedSnippets = new ArrayList<>();
-
-                    // We use this additional prefix because in src snippet cases we need to prespace
-                    // for readme snippet cases we DONT need the prespace at all.
-                    String linePrefix = prefixFunction(end, prefixGroupNum, additionalLinePrefix);
-
-                    for (String snippet : respaceLines(newSnippets)) {
-                        String moddedSnippet = disableEscape ? snippet : escapeString(snippet);
-                        modifiedSnippets.add(moddedSnippet.length() == 0
-                            ? END_OF_LINE_WHITESPACES.matcher(linePrefix).replaceAll("") + lineSep
-                            : linePrefix + moddedSnippet + lineSep);
-                    }
-
-                    Collections.sort(modifiedSnippets);
-                    Collections.sort(currentSnippetSet);
-
-                    if (!modifiedSnippets.equals(currentSnippetSet)) {
-                        foundIssues.add(new VerifyResult(file, currentSnippetId));
-                    }
-
-                    inSnippet = false;
-                    currentSnippetSet = null;
-                }
-            } else {
-                if (inSnippet) {
-                    if (preFence.length() > 0 && postFence.length() > 0) {
-                        if (!line.contains(preFence) && !line.contains(postFence)) {
-                            currentSnippetSet.add(line + lineSep);
-                        }
-                    } else {
-                        currentSnippetSet.add(line + lineSep);
-                    }
-                }
-            }
-        }
-
-        return new SnippetOperationResult<>(foundIssues, badSnippetCalls);
-    }
-
-    static Map<String, List<String>> getAllSnippets(List<Path> snippetSources)
+    static Map<String, CodesnippetDefinition> getAllSnippets(List<Path> snippetSources)
         throws IOException, MojoExecutionException {
-        Map<String, List<String>> locatedSnippets = new HashMap<>();
-        List<VerifyResult> detectedIssues = new ArrayList<>();
+        Map<String, CodesnippetDefinition> locatedSnippets = new HashMap<>();
+
+        Set<CodesnippetDefinition> duplicateCodesnippets = new HashSet<>();
 
         for (Path samplePath : snippetSources) {
             List<String> fileContent = Files.readAllLines(samplePath, StandardCharsets.UTF_8);
-            Map<String, List<String>> tempSnippetMap = new HashMap<>();
+            Map<String, CodesnippetDefinition> tempSnippetMap = new HashMap<>();
             SnippetDictionary snippetReader = new SnippetDictionary();
 
-            for (String line : fileContent) {
+            forEachLine(fileContent, (lineNumber, line) -> {
                 Matcher begin = SNIPPET_DEF_BEGIN.matcher(line);
                 Matcher end = SNIPPET_DEF_END.matcher(line);
 
                 if (begin.matches()) {
-                    String id_beginning = begin.group(1);
-                    snippetReader.beginSnippet((id_beginning));
+                    snippetReader.beginSnippet(samplePath, begin.group(1), lineNumber);
                 } else if (end.matches()) {
                     String id_ending = end.group(1);
-                    List<String> snippetContent = snippetReader.finalizeSnippet((id_ending));
-                    if (!tempSnippetMap.containsKey((id_ending))) {
+                    CodesnippetDefinition snippetContent = snippetReader.finalizeSnippet(id_ending, lineNumber);
+                    if (!tempSnippetMap.containsKey(id_ending)) {
                         tempSnippetMap.put(id_ending, snippetContent);
                     } else {
                         // detect duplicate in file
-                        detectedIssues.add(new VerifyResult(samplePath, id_ending));
+                        duplicateCodesnippets.add(tempSnippetMap.get(id_ending));
+                        duplicateCodesnippets.add(snippetContent);
                     }
                 } else if (snippetReader.isActive()) {
                     snippetReader.processLine(line);
                 }
-            }
+            });
 
             // we need to examine them individually, as we want to get a complete list of all the duplicates in a run
             for (String snippetId : tempSnippetMap.keySet()) {
@@ -410,35 +214,113 @@ public final class SnippetReplacer {
                     locatedSnippets.put(snippetId, tempSnippetMap.get(snippetId));
                 } else {
                     // detect duplicate across multiple files
-                    detectedIssues.add(new VerifyResult(samplePath, snippetId));
+                    duplicateCodesnippets.add(locatedSnippets.get(snippetId));
+                    duplicateCodesnippets.add(tempSnippetMap.get(snippetId));
                 }
             }
         }
 
-        if (detectedIssues.size() > 0) {
-            throw new MojoExecutionException("Duplicate Snippet Definitions Detected. " + System.lineSeparator() +
-                getErrorString(detectedIssues));
+        if (duplicateCodesnippets.size() > 0) {
+            StringBuilder duplicateCodesnippetMessage = new StringBuilder();
+
+            duplicateCodesnippets.stream()
+                .sorted(Comparator.comparing(CodesnippetDefinition::getAlias, String::compareTo))
+                .forEach(codesnippetDefinition ->
+                    addDuplicateCodesnippetDefinitionError(duplicateCodesnippetMessage, codesnippetDefinition));
+
+            throw new MojoExecutionException("Duplicate codesnippet definitions detected:" + LINE_SEPARATOR +
+                duplicateCodesnippetMessage);
         }
 
         return locatedSnippets;
     }
 
-    static String getErrorString(List<VerifyResult> errors) {
-        StringBuilder results = new StringBuilder();
-
-        for (VerifyResult result : errors) {
-            results.append("Duplicate snippetId ")
-                .append(result.snippetWithIssues)
-                .append(" detected in ")
-                .append(result.readmeLocation)
-                .append(".")
-                .append(System.lineSeparator());
-        }
-
-        return results.toString();
+    private static void addDuplicateCodesnippetDefinitionError(StringBuilder errorMessage,
+        CodesnippetDefinition codesnippetDefinition) {
+        errorMessage.append("Duplicate codesnippet definition ")
+            .append(codesnippetDefinition.getAlias())
+            .append(" detected in ")
+            .append(codesnippetDefinition.getDefinitionFile())
+            .append(":")
+            .append(codesnippetDefinition.getBeginLine())
+            .append(".")
+            .append(LINE_SEPARATOR);
     }
 
-    static List<String> respaceLines(List<String> snippetText) {
+    static InjectionResult injectSnippets(Path file, Pattern beginRegex, Pattern endRegex,
+        Map<String, CodesnippetDefinition> snippetMap, String preFence, String postFence, int prefixGroupNum,
+        String additionalLinePrefix, boolean disableEscape) throws IOException {
+        List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
+
+        List<VerifyResult> missingCodesnippets = new ArrayList<>();
+        List<VerifyResult> badCodesnippets = new ArrayList<>();
+
+        StringBuilder modifiedLines = new StringBuilder();
+        final boolean[] inSnippet = {false};
+        final boolean[] updateSourceFile = {false};
+        final String[] currentSnippetId = {""};
+
+        forEachLine(lines, (lineNumber, line) -> {
+            Matcher begin = beginRegex.matcher(line);
+            Matcher end = endRegex.matcher(line);
+
+            if (begin.matches()) {
+                addLinesAndAppendNewLine(modifiedLines, line);
+                currentSnippetId[0] = begin.group(2);
+                inSnippet[0] = true;
+            } else if (end.matches()) {
+                if (inSnippet[0]) {
+                    List<String> newSnippets;
+                    if (snippetMap.containsKey(currentSnippetId[0])) {
+                        newSnippets = snippetMap.get(currentSnippetId[0]).getCodesnippet();
+                    } else {
+                        missingCodesnippets.add(new VerifyResult(file, lineNumber, currentSnippetId[0]));
+                        updateSourceFile[0] = true;
+                        inSnippet[0] = false;
+                        return;
+                    }
+
+                    List<String> modifiedSnippets = new ArrayList<>();
+
+                    // We use this additional prefix because in src snippet cases we need to prespace
+                    // for readme snippet cases we DONT need the prespace at all.
+                    String linePrefix = prefixFunction(end, prefixGroupNum, additionalLinePrefix);
+
+                    for (String snippet : respaceLines(newSnippets)) {
+                        String moddedSnippet = disableEscape ? snippet : escapeString(snippet);
+                        modifiedSnippets.add(moddedSnippet.length() == 0
+                            ? END_OF_LINE_WHITESPACES.matcher(linePrefix).replaceAll("") + LINE_SEPARATOR
+                            : linePrefix + moddedSnippet + LINE_SEPARATOR);
+                    }
+
+                    if (preFence != null && preFence.length() > 0) {
+                        addLinesAndAppendNewLine(modifiedLines, linePrefix, preFence);
+                    }
+
+                    modifiedSnippets.forEach(modifiedLines::append);
+
+                    if (postFence != null && postFence.length() > 0) {
+                        addLinesAndAppendNewLine(modifiedLines, linePrefix, postFence);
+                    }
+
+                    addLinesAndAppendNewLine(modifiedLines, line);
+                    updateSourceFile[0] = true;
+                    inSnippet[0] = false;
+                } else {
+                    // This is a line that matched the endRegex without being in a codesnippet itself.
+                    // Just append the line and continue processing.
+                    addLinesAndAppendNewLine(modifiedLines, line);
+                }
+            } else if (!inSnippet[0]) {
+                // Only modify the lines if not in the codesnippet.
+                addLinesAndAppendNewLine(modifiedLines, line);
+            }
+        });
+
+        return new InjectionResult(modifiedLines, updateSourceFile[0], missingCodesnippets, badCodesnippets);
+    }
+
+    private static List<String> respaceLines(List<String> snippetText) {
         // get List of all the leading whitespace in the sample
         // toss out lines that are empty (as they shouldn't mess with the minimum)
         String minWhitespace = null;
@@ -467,7 +349,7 @@ public final class SnippetReplacer {
         return modifiedStrings;
     }
 
-    static String prefixFunction(Matcher match, int groupNum, String additionalPrefix) {
+    private static String prefixFunction(Matcher match, int groupNum, String additionalPrefix) {
         // if we pass -1 as the matcher groupNum, we don't want any prefix at all
         if (match == null || groupNum < 1) {
             return "";
@@ -476,7 +358,7 @@ public final class SnippetReplacer {
         }
     }
 
-    static String escapeString(String target) {
+    private static String escapeString(String target) {
         if (target != null && target.trim().length() > 0) {
             for (String key : REPLACEMENT_SET.keySet()) {
                 target = target.replace(key, REPLACEMENT_SET.get(key));
@@ -516,6 +398,20 @@ public final class SnippetReplacer {
         });
 
         return locatedPaths;
+    }
+
+    private static void addLinesAndAppendNewLine(StringBuilder builder, String... lines) {
+        for (String line : lines) {
+            builder.append(line);
+        }
+
+        builder.append(LINE_SEPARATOR);
+    }
+
+    private static void forEachLine(List<String> lines, BiConsumer<Integer, String> forEach) {
+        for (int i = 0; i < lines.size(); i++) {
+            forEach.accept(i, lines.get(i));
+        }
     }
 
     private SnippetReplacer() {

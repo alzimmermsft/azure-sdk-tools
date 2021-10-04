@@ -3,37 +3,35 @@
 
 package com.azure.tools.codesnippetplugin.implementation;
 
-import java.util.ArrayList;
+import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
  * Maintains the known codesnippets in a run.
  */
-public final class SnippetDictionary {
-    private final Map<String, List<String>> snippetDictionary = new HashMap<>();
+final class SnippetDictionary {
+    private final Map<String, CodesnippetDefinition> snippetDictionary = new HashMap<>();
 
-    public boolean isActive() {
+    boolean isActive() {
         return !snippetDictionary.isEmpty();
     }
 
-    public void beginSnippet(String key) {
-        if (!this.snippetDictionary.containsKey((key))) {
-            this.snippetDictionary.put(key, new ArrayList<>());
+    void beginSnippet(Path definitionFile, String alias, int beginLine) {
+        if (!this.snippetDictionary.containsKey(alias)) {
+            this.snippetDictionary.put(alias, new CodesnippetDefinition(definitionFile, alias, beginLine));
         }
     }
 
-    public void processLine(String line) {
-        for (Map.Entry<String, List<String>> entry : this.snippetDictionary.entrySet()) {
-            entry.getValue().add(line);
-        }
+    void processLine(String line) {
+        snippetDictionary.values().forEach(codesnippetDefinition -> codesnippetDefinition.addCodesnippetLine(line));
     }
 
-    public List<String> finalizeSnippet(String key) {
-        List<String> value = this.snippetDictionary.get(key);
-        this.snippetDictionary.remove(key);
+    CodesnippetDefinition finalizeSnippet(String alias, int endLine) {
+        CodesnippetDefinition value = this.snippetDictionary.get(alias);
+        this.snippetDictionary.remove(alias);
 
+        value.setEndLine(endLine);
         return value;
     }
 }
