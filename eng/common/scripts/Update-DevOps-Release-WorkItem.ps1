@@ -74,7 +74,7 @@ if (!$workItem) {
 }
 
 Write-Host "Updated or created a release work item for a package release with the following properties:"
-Write-Host "  Lanuage: $($workItem.fields['Custom.Language'])"
+Write-Host "  Language: $($workItem.fields['Custom.Language'])"
 Write-Host "  Version: $($workItem.fields['Custom.PackageVersionMajorMinor'])"
 Write-Host "  Package: $($workItem.fields['Custom.Package'])"
 Write-Host "  AssignedTo: $($workItem.fields['System.AssignedTo']["uniqueName"])"

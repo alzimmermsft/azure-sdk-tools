@@ -33,7 +33,7 @@ New-TestResources.ps1 [-BaseName <String>] [-ResourceGroupName <String>] [-Servi
 ```
 
 ## DESCRIPTION
-Deploys live test resouces specified in test-resources.json or test-resources.bicep
+Deploys live test resources specified in test-resources.json or test-resources.bicep
 files to a new resource group.
 
 This script searches the directory specified in $ServiceDirectory recursively
@@ -156,7 +156,7 @@ New-TestResources.ps1 `
     -Verbose
 ```
 
-Run this in an Azure DevOps CI (with approrpiate variables configured) before
+Run this in an Azure DevOps CI (with appropriate variables configured) before
 executing live tests.
 The script will output variables as secrets (to enable
 log redaction).
@@ -169,7 +169,7 @@ Limit $BaseName to enough characters to be under limit plus prefixes specified i
 the ARM template.
 See also https://docs.microsoft.com/azure/architecture/best-practices/resource-naming
 
-Note: The value specified for this parameter will be overriden and generated
+Note: The value specified for this parameter will be overridden and generated
 by New-TestResources.ps1 if $CI is specified.
 
 ```yaml
@@ -353,7 +353,7 @@ context of the caller to provision.
 If specified, the Provisioner Application principal would benefit from the following
 permissions to the Microsoft Graph API:
 
-  - 'Application.Read.All' in order to query AAD to obtain the 'TestApplicaitonOid'
+  - 'Application.Read.All' in order to query AAD to obtain the 'TestApplicationOid'
 
   - 'Application.ReadWrite.OwnedBy' in order to create the Test Application principal
      or grant an existing principal ownership of the resource group associated with

@@ -2,7 +2,7 @@
 
 # Parameter description
 # Version : Version to add or replace in change log
-# Unreleased: Default is true. If it is set to false, then today's date will be set in verion title. If it is True then title will show "Unreleased"
+# Unreleased: Default is true. If it is set to false, then today's date will be set in version title. If it is True then title will show "Unreleased"
 # ReplaceLatestEntryTitle: Replaces the latest changelog entry title.
 
 [CmdletBinding()]
@@ -21,12 +21,12 @@ Set-StrictMode -Version 3
 . (Join-Path $PSScriptRoot common.ps1)
 
 if ($ReleaseDate -and $Unreleased) {
-    LogError "Do not pass 'ReleaseDate' arguement when 'Unreleased' is true"
+    LogError "Do not pass 'ReleaseDate' argument when 'Unreleased' is true"
     exit 1
 }
 
 if (!$PackageName -and !$ChangelogPath) {
-    LogError "You must pass either the PackageName or ChangelogPath arguument."
+    LogError "You must pass either the PackageName or ChangelogPath argument."
     exit 1
 }
 
@@ -75,7 +75,7 @@ if ($ChangeLogEntries.Contains($Version))
 {
     if ($ChangeLogEntries[$Version].ReleaseStatus -eq $ReleaseStatus)
     {
-        LogDebug "Version [$Version] is already present in change log with specificed ReleaseStatus [$ReleaseStatus]. No Change made."
+        LogDebug "Version [$Version] is already present in change log with specified ReleaseStatus [$ReleaseStatus]. No Change made."
         exit(0)
     }
 
@@ -102,7 +102,7 @@ LogDebug "The latest release note entry in the changelog is for version [$($Late
 
 $LatestsSorted = [AzureEngSemanticVersion]::SortVersionStrings(@($LatestVersion, $Version))
 if ($LatestsSorted[0] -ne $Version) {
-    LogWarning "Version [$Version] is older than the latestversion [$LatestVersion] in the changelog. Consider using a more recent version."
+    LogWarning "Version [$Version] is older than the latest version [$LatestVersion] in the changelog. Consider using a more recent version."
 }
 
 if ($ReplaceLatestEntryTitle)

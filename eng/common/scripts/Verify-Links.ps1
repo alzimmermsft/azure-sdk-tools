@@ -15,7 +15,7 @@
   Switch that will enable devops specific logging for warnings
 
   .PARAMETER recursive
-  Check the links recurisvely based on recursivePattern.
+  Check the links recursively based on recursivePattern.
 
   .PARAMETER baseUrl
   Recursively check links for all links verified that begin with this baseUrl, defaults to the folder the url is contained in.
@@ -137,7 +137,7 @@ function ResolveUri ([System.Uri]$referralUri, [string]$link)
 
   $linkUri = [System.Uri]$link;
   # Our link guidelines do not allow relative links so only resolve them when we are not
-  # validating links against our link guidelines (i.e. !$checkLinkGuideance)
+  # validating links against our link guidelines (i.e. !$checkLinkGuidance)
   if ($checkLinkGuidance -and !$linkUri.IsAbsoluteUri) {
     return $linkUri
   }
@@ -295,7 +295,7 @@ function CheckLink ([System.Uri]$linkUri, $allowRetry=$true)
       LogWarning "DO NOT use 'http' in $linkUri. Please use secure link with https instead. Check here for more information: https://aka.ms/azsdk/guideline/links"
       $linkValid = $false
     }
-    # Check if the url is relative links, suppress the archor link validation.
+    # Check if the url is relative links, suppress the anchor link validation.
     if (!$linkUri.IsAbsoluteUri -and !$link.StartsWith("#")) {
       LogWarning "DO NOT use relative link $linkUri. Please use absolute link instead. Check here for more information: https://aka.ms/azsdk/guideline/links"
       $linkValid = $false

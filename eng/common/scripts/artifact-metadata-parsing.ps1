@@ -62,7 +62,7 @@ function GetExistingTags($apiUrl) {
   }
 }
 
-# Retrieve release tag for artiface package. If multiple packages, then output the first one.
+# Retrieve release tag for artifice package. If multiple packages, then output the first one.
 function RetrieveReleaseTag($artifactLocation, $continueOnError = $true) {
   if (!$artifactLocation) {
     return ""
@@ -74,7 +74,7 @@ function RetrieveReleaseTag($artifactLocation, $continueOnError = $true) {
       return ""
     }
     if ($pkgs.Count -gt 1) {
-      Write-Host "There are more than 1 packages retieved from artifact location."
+      Write-Host "There are more than 1 packages retrieved from artifact location."
       foreach ($pkg in $pkgs) {
         Write-Host "The package name is $($pkg.BaseName)"
       }
@@ -147,7 +147,7 @@ function VerifyPackages($artifactLocation, $workingDirectory, $apiUrl, $releaseS
   $results = @([array]$pkgList | Sort-Object -Property Tag -uniq)
 
   $existingTags = GetExistingTags($apiUrl)
-  
+
   $intersect = $results | % { $_.Tag } | ? { $existingTags -contains $_ }
 
   if ($intersect.Length -gt 0 -and !$continueOnError) {

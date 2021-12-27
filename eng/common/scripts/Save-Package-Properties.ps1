@@ -7,23 +7,23 @@ Saves package properties in source of a given service directory to JSON files.
 JSON files are named in the form <package name>.json or <artifact name>.json if
 an artifact name property is available in the package properties.
 
-Can optionally add a dev version property which can be used logic for daily 
+Can optionally add a dev version property which can be used logic for daily
 builds.
 
 .PARAMETER serviceDirectory
 Service directory in which to search for packages
 
 .PARAMETER outDirectory
-Output location (generally a package artifact directory in DevOps) for JSON 
+Output location (generally a package artifact directory in DevOps) for JSON
 files
 
 .PARAMETER addDevVersion
-Reads the version out of the source and adds a DevVersion property to the 
-package properties JSON file. If the package properties JSON file already 
+Reads the version out of the source and adds a DevVersion property to the
+package properties JSON file. If the package properties JSON file already
 exists, read the Version property from the existing package properties JSON file
 and set that as the Version property for the new output. This has the effect of
-"adding" a DevVersion property to the file which could be different from the 
-Verison property in that file.
+"adding" a DevVersion property to the file which could be different from the
+Version property in that file.
 #>
 
 [CmdletBinding()]
@@ -39,7 +39,7 @@ Param (
 
 function SetOutput($outputPath, $incomingPackageSpec) {
 
-  # If there is an exsiting package info json file read that and set that as output object which gets properties updated here.
+  # If there is an existing package info json file read that and set that as output object which gets properties updated here.
   if (Test-Path $outputPath)
   {
     Write-Host "Found existing package info json."
@@ -49,7 +49,7 @@ function SetOutput($outputPath, $incomingPackageSpec) {
   {
     $outputObject = $incomingPackageSpec
   }
-  
+
 
   if ($addDevVersion)
   {

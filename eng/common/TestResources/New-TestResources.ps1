@@ -350,25 +350,25 @@ try {
             $context = (Connect-AzAccount).Context
         }
 
-        $currentSubcriptionId = $context.Subscription.Id
+        $currentSubscriptionId = $context.Subscription.Id
 
         # If no subscription was specified, try to select the Azure SDK Developer Playground subscription.
         # Ignore errors to leave the automatically selected subscription.
         if ($SubscriptionId) {
-            if ($currentSubcriptionId -ne $SubscriptionId) {
+            if ($currentSubscriptionId -ne $SubscriptionId) {
                 Log "Selecting subscription '$SubscriptionId'"
                 $null = Select-AzSubscription -Subscription $SubscriptionId
 
                 $exitActions += {
-                    Log "Selecting previous subscription '$currentSubcriptionId'"
-                    $null = Select-AzSubscription -Subscription $currentSubcriptionId
+                    Log "Selecting previous subscription '$currentSubscriptionId'"
+                    $null = Select-AzSubscription -Subscription $currentSubscriptionId
                 }
 
                 # Update the context.
                 $context = Get-AzContext
             }
         } else {
-            if ($currentSubcriptionId -ne 'faa080af-c1d8-40ad-9cce-e1a450ca5b57') {
+            if ($currentSubscriptionId -ne 'faa080af-c1d8-40ad-9cce-e1a450ca5b57') {
                 Log "Attempting to select subscription 'Azure SDK Developer Playground (faa080af-c1d8-40ad-9cce-e1a450ca5b57)'"
                 $null = Select-AzSubscription -Subscription 'faa080af-c1d8-40ad-9cce-e1a450ca5b57' -ErrorAction Ignore
 
@@ -530,7 +530,7 @@ try {
             $suffix = (New-Guid).ToString('n').Substring(0, 4)
 
             # Service principals in the Microsoft AAD tenant must end with an @microsoft.com domain; those in other tenants
-            # are not permitted to do so. Format the non-MS name so there's an assocation with the Azure SDK.
+            # are not permitted to do so. Format the non-MS name so there's an association with the Azure SDK.
             if ($TenantId -eq '72f988bf-86f1-41af-91ab-2d7cd011db47') {
                 $displayName = "test-resources-$($baseName)$suffix.microsoft.com"
             } else {
@@ -717,7 +717,7 @@ if ($CI) {
 Deploys live test resources defined for a service directory to Azure.
 
 .DESCRIPTION
-Deploys live test resouces specified in test-resources.json or test-resources.bicep
+Deploys live test resources specified in test-resources.json or test-resources.bicep
 files to a new resource group.
 
 This script searches the directory specified in $ServiceDirectory recursively
@@ -740,7 +740,7 @@ A name to use in the resource group and passed to the ARM template as 'baseName'
 Limit $BaseName to enough characters to be under limit plus prefixes specified in
 the ARM template. See also https://docs.microsoft.com/azure/architecture/best-practices/resource-naming
 
-Note: The value specified for this parameter will be overriden and generated
+Note: The value specified for this parameter will be overridden and generated
 by New-TestResources.ps1 if $CI is specified.
 
 .PARAMETER ResourceGroupName
@@ -817,7 +817,7 @@ context of the caller to provision.
 If specified, the Provisioner Application principal would benefit from the following
 permissions to the Microsoft Graph API:
 
-  - 'Application.Read.All' in order to query AAD to obtain the 'TestApplicaitonOid'
+  - 'Application.Read.All' in order to query AAD to obtain the 'TestApplicationOid'
 
   - 'Application.ReadWrite.OwnedBy' in order to create the Test Application principal
      or grant an existing principal ownership of the resource group associated with
@@ -886,7 +886,7 @@ Bicep templates, test-resources.bicep.env.
 
 .PARAMETER SuppressVsoCommands
 By default, the -CI parameter will print out secrets to logs with Azure Pipelines log
-commands that cause them to be redacted. For CI environments that don't support this (like 
+commands that cause them to be redacted. For CI environments that don't support this (like
 stress test clusters), this flag can be set to $false to avoid printing out these secrets to the logs.
 
 .EXAMPLE
@@ -976,7 +976,7 @@ New-TestResources.ps1 `
     -Force `
     -Verbose
 
-Run this in an Azure DevOps CI (with approrpiate variables configured) before
+Run this in an Azure DevOps CI (with appropriate variables configured) before
 executing live tests. The script will output variables as secrets (to enable
 log redaction).
 

@@ -17,7 +17,7 @@ $repositoryOwner = $repositoryParts[0]
 LogDebug "Repository owner is: $repositoryOwner"
 
 $repositoryName = $repositoryParts[1]
-LogDebug "Reposiory name is: $repositoryName"
+LogDebug "Repository name is: $repositoryName"
 
 $ref = "tags/$Tag"
 LogDebug "Calculated ref is: $ref"

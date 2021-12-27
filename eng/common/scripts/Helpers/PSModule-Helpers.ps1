@@ -11,23 +11,23 @@ function Update-PSModulePath()
 
   if ($IsWindows) {
     $hostedAgentModulePath = $env:SystemDrive + "\Modules"
-    $moduleSeperator = ";"
+    $moduleSeparator = ";"
   } else {
     $hostedAgentModulePath = "/usr/share"
-    $moduleSeperator = ":"
+    $moduleSeparator = ":"
   }
-  $modulePaths = $env:PSModulePath -split $moduleSeperator
+  $modulePaths = $env:PSModulePath -split $moduleSeparator
 
   # Remove any hosted agent paths (needed to remove old default azure/azurerm paths which cause conflicts)
   $modulePaths = $modulePaths.Where({ !$_.StartsWith($hostedAgentModulePath) })
 
-  # Add any "az_" paths from the agent which is the lastest set of azure modules
-  $AzModuleCachPath = (Get-ChildItem "$hostedAgentModulePath/az_*" -Attributes Directory) -join $moduleSeperator
-  if ($AzModuleCachPath -and $env.PSModulePath -notcontains $AzModuleCachPath) {
-    $modulePaths += $AzModuleCachPath
+  # Add any "az_" paths from the agent which is the latest set of azure modules
+  $AzModuleCachePath = (Get-ChildItem "$hostedAgentModulePath/az_*" -Attributes Directory) -join $moduleSeparator
+  if ($AzModuleCachePath -and $env.PSModulePath -notcontains $AzModuleCachePath) {
+    $modulePaths += $AzModuleCachePath
   }
 
-  $env:PSModulePath = $modulePaths -join $moduleSeperator
+  $env:PSModulePath = $modulePaths -join $moduleSeparator
 
   # Find the path that is under user home directory
   $homeDirectories = $modulePaths.Where({ $_.StartsWith($home) })
@@ -64,7 +64,7 @@ function Install-ModuleIfNotInstalled($moduleName, $version, $repositoryUrl = $D
       Register-PSRepository -Name $repositoryUrl -SourceLocation $repositoryUrl -InstallationPolicy Trusted
       $repositories = (Get-PSRepository).Where({ $_.SourceLocation -eq $repositoryUrl })
       if ($repositories.Count -eq 0) {
-        Write-Error "Failed to registory package repository $repositoryUrl."
+        Write-Error "Failed to registry package repository $repositoryUrl."
         return
       }
     }

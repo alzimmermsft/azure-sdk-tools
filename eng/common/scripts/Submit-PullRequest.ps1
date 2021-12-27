@@ -18,17 +18,17 @@ A personal access token
 .PARAMETER PRTitle
 The title of the pull request.
 .PARAMETER PRBody
-The body message for the pull request. 
+The body message for the pull request.
 .PARAMETER PRLabels
-The labels added to the PRs. Multple labels seperated by comma, e.g "bug, service"
+The labels added to the PRs. Multiple labels seperated by comma, e.g "bug, service"
 .PARAMETER UserReviewers
 User reviewers to request after opening the PR. Users should be a comma-
-separated list with no preceeding `@` symbol (e.g. "user1,usertwo,user3")
+separated list with no preceding `@` symbol (e.g. "user1,usertwo,user3")
 .PARAMETER TeamReviewers
 List of github teams to add as reviewers
 .PARAMETER Assignees
 Users to assign to the PR after opening. Users should be a comma-separated list
-with no preceeding `@` symbol (e.g. "user1,usertwo,user3")
+with no preceding `@` symbol (e.g. "user1,usertwo,user3")
 .PARAMETER CloseAfterOpenForTesting
 Close the PR after opening to save on CI resources and prevent alerts to code
 owners, assignees, requested reviewers, or others.
@@ -80,7 +80,7 @@ try {
   $resp = Get-GitHubPullRequests -RepoOwner $RepoOwner -RepoName $RepoName `
   -Head "${PROwner}:${PRBranch}" -Base $BaseBranch -AuthToken $AuthToken
 }
-catch { 
+catch {
   LogError "Get-GitHubPullRequests failed with exception:`n$_"
   exit 1
 }
@@ -107,7 +107,7 @@ else {
 
     $resp | Write-Verbose
     LogDebug "Pull request created https://github.com/$RepoOwner/$RepoName/pull/$($resp.number)"
-  
+
     $prOwnerUser = $resp.user.login
 
     # setting variable to reference the pull request by number

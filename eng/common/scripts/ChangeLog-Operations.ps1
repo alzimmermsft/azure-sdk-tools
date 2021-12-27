@@ -8,7 +8,7 @@ $CHANGELOG_UNRELEASED_STATUS = "(Unreleased)"
 $CHANGELOG_DATE_FORMAT = "yyyy-MM-dd"
 $RecommendedSectionHeaders = @("Features Added", "Breaking Changes", "Bugs Fixed", "Other Changes")
 
-# Returns a Collection of changeLogEntry object containing changelog info for all version present in the gived CHANGELOG
+# Returns a Collection of changeLogEntry object containing changelog info for all version present in the given CHANGELOG
 function Get-ChangeLogEntries {
   param (
     [Parameter(Mandatory = $true)]
@@ -138,7 +138,7 @@ function Confirm-ChangeLogEntry {
     [Parameter(Mandatory = $true)]
     [String]$VersionString,
     [boolean]$ForRelease = $false,
-    [Switch]$SantizeEntry
+    [Switch]$SanitizeEntry
   )
 
   $changeLogEntries = Get-ChangeLogEntries -ChangeLogLocation $ChangeLogLocation
@@ -149,7 +149,7 @@ function Confirm-ChangeLogEntry {
     return $false
   }
 
-  if ($SantizeEntry)
+  if ($SanitizeEntry)
   {
     Remove-EmptySections -ChangeLogEntry $changeLogEntry -InitialAtxHeader $changeLogEntries.InitialAtxHeader
     Set-ChangeLogContent -ChangeLogLocation $ChangeLogLocation -ChangeLogEntries $changeLogEntries
@@ -196,7 +196,7 @@ function Confirm-ChangeLogEntry {
       return $false
     }
 
-    $foundRecomendedSection = $false
+    $foundRecommendedSection = $false
     $emptySections = @()
     foreach ($key in $changeLogEntry.Sections.Keys)
     {
@@ -207,7 +207,7 @@ function Confirm-ChangeLogEntry {
       }
       if ($RecommendedSectionHeaders -contains $key)
       {
-        $foundRecomendedSection = $true
+        $foundRecommendedSection = $true
       }
     }
     if ($emptySections.Count -gt 0)
@@ -215,9 +215,9 @@ function Confirm-ChangeLogEntry {
       LogError "The changelog entry has the following sections with no content ($($emptySections -join ', ')). Please ensure to either remove the empty sections or add content to the section."
       return $false
     }
-    if (!$foundRecomendedSection)
+    if (!$foundRecommendedSection)
     {
-      LogWarning "The changelog entry did not contain any of the recommended sections ($($RecommendedSectionHeaders -join ', ')), pease add at least one. See https://aka.ms/azsdk/guideline/changelogs for more info."
+      LogWarning "The changelog entry did not contain any of the recommended sections ($($RecommendedSectionHeaders -join ', ')), please add at least one. See https://aka.ms/azsdk/guideline/changelogs for more info."
     }
   }
   return $true
@@ -233,7 +233,7 @@ function New-ChangeLogEntry {
     [String[]]$Content
   )
 
-  # Validate RelaseStatus
+  # Validate ReleaseStatus
   $Status = $Status.Trim().Trim("()")
   if ($Status -ne "Unreleased") {
     try {
@@ -328,8 +328,8 @@ function Remove-EmptySections {
   {
     $parsedSections = $ChangeLogEntry.Sections
     $sanitizedReleaseContent = New-Object System.Collections.ArrayList(,$releaseContent)
-  
-    foreach ($key in @($parsedSections.Keys)) 
+
+    foreach ($key in @($parsedSections.Keys))
     {
       if ([System.String]::IsNullOrWhiteSpace($parsedSections[$key]))
       {

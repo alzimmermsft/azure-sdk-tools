@@ -91,14 +91,14 @@ if (!$context) {
 # If no subscription was specified, try to select the Azure SDK Developer Playground subscription.
 # Ignore errors to leave the automatically selected subscription.
 if ($SubscriptionId) {
-    $currentSubcriptionId = $context.Subscription.Id
-    if ($currentSubcriptionId -ne $SubscriptionId) {
+    $currentSubscriptionId = $context.Subscription.Id
+    if ($currentSubscriptionId -ne $SubscriptionId) {
         Log "Selecting subscription '$SubscriptionId'"
         $null = Select-AzSubscription -Subscription $SubscriptionId
 
         $exitActions += {
-            Log "Selecting previous subscription '$currentSubcriptionId'"
-            $null = Select-AzSubscription -Subscription $currentSubcriptionId
+            Log "Selecting previous subscription '$currentSubscriptionId'"
+            $null = Select-AzSubscription -Subscription $currentSubscriptionId
         }
 
         # Update the context.

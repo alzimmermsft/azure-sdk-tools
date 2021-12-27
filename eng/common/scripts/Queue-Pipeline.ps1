@@ -14,10 +14,10 @@ will result in queuing of the run with the default branch configured for the
 pipeline.
 
 .PARAMETER DefinitionId
-Pipline definition ID
+Pipeline definition ID
 
 .PARAMETER CancelPreviousBuilds
-Requires a value for SourceBranch. Cancel previous builds before queuing the new 
+Requires a value for SourceBranch. Cancel previous builds before queuing the new
 build.
 
 .PARAMETER VsoQueuedPipelines
@@ -76,7 +76,7 @@ if ($CancelPreviousBuilds -and $SourceBranch)
     -StatusFilter "inProgress, notStarted" -Base64EncodedAuthToken $Base64EncodedAuthToken
 
     if ($queuedBuilds.count -eq 0) {
-      LogDebug "There is no previous build still inprogress or about to start."
+      LogDebug "There is no previous build still in-progress or about to start."
     }
 
     foreach ($build in $queuedBuilds.Value) {
@@ -109,7 +109,7 @@ LogDebug "Pipeline [ $($resp.definition.name) ] queued at [ $($resp._links.web.h
 
 if ($VsoQueuedPipelines) {
   $enVarValue = [System.Environment]::GetEnvironmentVariable($VsoQueuedPipelines)
-  $QueuedPipelineLinks = if ($enVarValue) { 
+  $QueuedPipelineLinks = if ($enVarValue) {
     "$enVarValue<br>[$($resp.definition.name)]($($resp._links.web.href))"
   }else {
     "[$($resp.definition.name)]($($resp._links.web.href))"

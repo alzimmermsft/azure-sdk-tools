@@ -35,7 +35,7 @@ You should make any additional changes to the change log to capture the changes 
 PS> ./eng/common/scripts/Prepare-Release.ps1 <PackageName> -ReleaseTrackingOnly
 
 If you aren't ready to do the final versioning changes yet but you want to update release tracking information for shiproom pass in the -ReleaseTrackingOnly.
-option. This should not modify or validate anything in the repo but will update the DevOps release tracking items. Once you are ready for the verioning changes
+option. This should not modify or validate anything in the repo but will update the DevOps release tracking items. Once you are ready for the versioning changes
 as well then come back and run the full script again without the -ReleaseTrackingOnly option and give it the same version information you did the first time.
 #>
 [CmdletBinding()]
@@ -151,7 +151,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # Check API status if version is GA
 if (!$newVersionParsed.IsPrerelease)
-{ 
+{
   try
   {
     az account show *> $null
@@ -200,7 +200,7 @@ else
   exit 1
 }
 
-$changelogIsValid = Confirm-ChangeLogEntry -ChangeLogLocation $packageProperties.ChangeLogPath -VersionString $newVersion -ForRelease $true -SantizeEntry
+$changelogIsValid = Confirm-ChangeLogEntry -ChangeLogLocation $packageProperties.ChangeLogPath -VersionString $newVersion -ForRelease $true -SanitizeEntry
 
 if (!$changelogIsValid)
 {

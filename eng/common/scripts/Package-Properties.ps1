@@ -1,4 +1,4 @@
-# Helper functions for retireving useful information from azure-sdk-for-* repo
+# Helper functions for retrieving useful information from azure-sdk-for-* repo
 . "${PSScriptRoot}\logging.ps1"
 
 class PackageProps
@@ -55,7 +55,7 @@ class PackageProps
             if ($changeLogEntry -and $changeLogEntry.ReleaseStatus)
             {
               $this.ReleaseStatus = $changeLogEntry.ReleaseStatus.Trim().Trim("()")
-            } 
+            }
         }
         else
         {
@@ -101,7 +101,7 @@ function Get-PkgProperties
         return $pkgProps[0]
     }
 
-    LogError "Failed to retrive Properties for [$PackageName]"
+    LogError "Failed to retrieve Properties for [$PackageName]"
     return $null
 }
 
@@ -144,7 +144,7 @@ function Get-CSVMetadata ([string]$MetadataUri=$MetadataUri)
 
 function Get-PkgPropsForEntireService ($serviceDirectoryPath)
 {
-    $projectProps = @() # Properties from very project inthe service
+    $projectProps = @() # Properties from very project in the service
     $serviceDirectory = $serviceDirectoryPath -replace '^.*[\\/]+sdk[\\/]+([^\\/]+).*$', '$1'
 
     if (!$GetPackageInfoFromRepoFn -or !(Test-Path "Function:$GetPackageInfoFromRepoFn"))

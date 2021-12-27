@@ -1,6 +1,6 @@
 param (
   [string]$TargetDirectory = "", # Code path to code owners. e.g sdk/core/azure-amqp
-  [string]$CodeOwnerFileLocation = (Resolve-Path $PSScriptRoot/../../../.github/CODEOWNERS), # The absolute path of CODEOWNERS file. 
+  [string]$CodeOwnerFileLocation = (Resolve-Path $PSScriptRoot/../../../.github/CODEOWNERS), # The absolute path of CODEOWNERS file.
   [string]$ToolVersion = "1.0.0-dev.20211129.6", # Placeholder. Will update in next PR
   [string]$ToolPath = (Join-Path ([System.IO.Path]::GetTempPath()) "codeowners-tool-path"), # The place to check the tool existence. Put temp path as default
   [string]$DevOpsFeed = "https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-net/nuget/v3/index.json", # DevOp tool feeds.
@@ -12,7 +12,7 @@ param (
 function Get-CodeOwnersTool()
 {
   $command = Join-Path $ToolPath "retrieve-codeowners"
-  # Check if the retrieve-codeowners tool exsits or not.
+  # Check if the retrieve-codeowners tool exists or not.
   if (Get-Command $command -errorAction SilentlyContinue) {
     return $command
   }
@@ -21,7 +21,7 @@ function Get-CodeOwnersTool()
   }
   Write-Host "Installing the retrieve-codeowners tool under $ToolPath... "
 
-  # Run command under tool path to avoid dotnet tool install command checking .csproj files. 
+  # Run command under tool path to avoid dotnet tool install command checking .csproj files.
   # This is a bug for dotnet tool command. Issue: https://github.com/dotnet/sdk/issues/9623
   Push-Location $ToolPath
   dotnet tool install --tool-path $ToolPath --add-source $DevOpsFeed --version $ToolVersion "Azure.Sdk.Tools.RetrieveCodeOwners" | Out-Null
@@ -29,7 +29,7 @@ function Get-CodeOwnersTool()
   # Test to see if the tool properly installed.
   if (!(Get-Command $command -errorAction SilentlyContinue)) {
     Write-Error "The retrieve-codeowners tool is not properly installed. Please check your tool path. $ToolPath"
-    return 
+    return
   }
   return $command
 }
@@ -49,13 +49,13 @@ function Get-CodeOwners ([string]$targetDirectory, [string]$codeOwnerFileLocatio
     Write-Host $codeOwnersString
     return ,@()
   }
-  
+
   $codeOwnersJson = $codeOwnersString | ConvertFrom-Json
   if (!$codeOwnersJson) {
     Write-Host "No code owners returned from the path: $targetDirectory"
     return ,@()
   }
-  
+
   if ($VsoVariable) {
     $codeOwners = $codeOwnersJson.Owners -join ","
     Write-Host "##vso[task.setvariable variable=$VsoVariable;]$codeOwners"
@@ -87,7 +87,7 @@ if($Test) {
   TestGetCodeOwner -targetDirectory "/sdk/azconfig" -codeOwnerFileLocation $testFile -includeNonUserAliases $true -expectReturn @("person3", "person4")
   TestGetCodeOwner -targetDirectory "/sdk/azconfig/package" -codeOwnerFileLocation $testFile -includeNonUserAliases $true  $testFile -expectReturn @("person3", "person4")
   TestGetCodeOwner -targetDirectory "/sd" -codeOwnerFileLocation $testFile -includeNonUserAliases $true  -expectReturn @()
-  TestGetCodeOwner -targetDirectory "/sdk/testUser/" -codeOwnerFileLocation $testFile -expectReturn @("azure-sdk") 
+  TestGetCodeOwner -targetDirectory "/sdk/testUser/" -codeOwnerFileLocation $testFile -expectReturn @("azure-sdk")
   exit 0
 }
 else {
