@@ -27,9 +27,9 @@ public class ExpandableStringEnumDiagnosticRule implements DiagnosticRule {
             if (typeDeclaration instanceof ClassOrInterfaceDeclaration) {
                 ClassOrInterfaceDeclaration classDeclaration = (ClassOrInterfaceDeclaration) typeDeclaration;
                 // check if the type extends ExpandableStringEnum
-                if (classDeclaration.getExtendedTypes() != null
-                        && classDeclaration.getExtendedTypes().stream()
-                        .anyMatch(extendedType -> extendedType.getNameAsString().equals("ExpandableStringEnum"))) {
+                if (classDeclaration.getExtendedTypes() != null && classDeclaration.getExtendedTypes()
+                    .stream()
+                    .anyMatch(extendedType -> extendedType.getNameAsString().equals("ExpandableStringEnum"))) {
                     checkRequiredMethodsExist(cu, listing);
                 }
             }
@@ -52,17 +52,13 @@ public class ExpandableStringEnumDiagnosticRule implements DiagnosticRule {
 
             if (!hasFromStringMethod.get()) {
                 // missing public fromString method is an error.
-                listing.addDiagnostic(new Diagnostic(
-                        ERROR,
-                        makeId(cu),
-                        "Types extending ExpandableStringEnum should include public static fromString() method."));
+                listing.addDiagnostic(new Diagnostic(ERROR, makeId(cu),
+                    "Types extending ExpandableStringEnum should include public static fromString() method."));
             }
             if (!hasValuesMethod.get()) {
                 // Missing values method can be logged at warning level.
-                listing.addDiagnostic(new Diagnostic(
-                        WARNING,
-                        makeId(cu),
-                        "Types extending ExpandableStringEnum should include public static values() method."));
+                listing.addDiagnostic(new Diagnostic(WARNING, makeId(cu),
+                    "Types extending ExpandableStringEnum should include public static values() method."));
             }
         });
     }

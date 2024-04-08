@@ -25,15 +25,12 @@ import com.github.javaparser.ast.nodeTypes.NodeWithJavadoc;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
  * Abstract syntax tree (AST) utility methods.
  */
 public final class ASTUtils {
-    private static final Pattern MAKE_ID = Pattern.compile("\"| ");
-
     /**
      * Attempts to get the package name for a compilation unit.
      *
@@ -53,9 +50,7 @@ public final class ASTUtils {
      * @return The package name for the type declaration if it exists or an empty string if it doesn't.
      */
     public static String getPackageName(TypeDeclaration<?> typeDeclaration) {
-        return typeDeclaration.getFullyQualifiedName()
-            .map(str -> str.substring(0, str.lastIndexOf(".")))
-            .orElse("");
+        return typeDeclaration.getFullyQualifiedName().map(str -> str.substring(0, str.lastIndexOf("."))).orElse("");
     }
 
     /**
@@ -93,12 +88,12 @@ public final class ASTUtils {
         // previously we simply return 'cu.getTypes().stream()', but this had the effect of not returning all inner
         // types, as was expected. This is because the 'getTypes()' method only returns the top-level types, and not
         // member types. To fix this, we now return a stream of all types, including member types.
-        return Stream.concat(
-                cu.getTypes().stream(), // top-level types
-                cu.getTypes().stream()  // member types
-                     .flatMap(type -> type.getMembers().stream()
-                          .filter(member -> member instanceof TypeDeclaration<?>)
-                          .map(member -> (TypeDeclaration<?>) member)));
+        return Stream.concat(cu.getTypes().stream(), // top-level types
+            cu.getTypes().stream()  // member types
+                .flatMap(type -> type.getMembers()
+                    .stream()
+                    .filter(member -> member instanceof TypeDeclaration<?>)
+                    .map(member -> (TypeDeclaration<?>) member)));
     }
 
     /**
@@ -118,7 +113,8 @@ public final class ASTUtils {
      * @return All public API constructors contained in the type declaration.
      */
     public static Stream<ConstructorDeclaration> getPublicOrProtectedConstructors(TypeDeclaration<?> typeDeclaration) {
-        return typeDeclaration.getConstructors().stream()
+        return typeDeclaration.getConstructors()
+            .stream()
             .filter(type -> isPublicOrProtected(type.getAccessSpecifier()));
     }
 
@@ -139,8 +135,7 @@ public final class ASTUtils {
      * @return All public API methods contained in the type declaration.
      */
     public static Stream<MethodDeclaration> getPublicOrProtectedMethods(TypeDeclaration<?> typeDeclaration) {
-        return typeDeclaration.getMethods().stream()
-            .filter(type -> isPublicOrProtected(type.getAccessSpecifier()));
+        return typeDeclaration.getMethods().stream().filter(type -> isPublicOrProtected(type.getAccessSpecifier()));
     }
 
     /**
@@ -160,8 +155,7 @@ public final class ASTUtils {
      * @return All public API fields contained in the type declaration.
      */
     public static Stream<FieldDeclaration> getPublicOrProtectedFields(TypeDeclaration<?> typeDeclaration) {
-        return typeDeclaration.getFields().stream()
-            .filter(type -> isPublicOrProtected(type.getAccessSpecifier()));
+        return typeDeclaration.getFields().stream().filter(type -> isPublicOrProtected(type.getAccessSpecifier()));
     }
 
     /**
@@ -181,7 +175,7 @@ public final class ASTUtils {
      * @return Whether the access specifier is package-private or private.
      */
     public static boolean isPrivateOrPackagePrivate(AccessSpecifier accessSpecifier) {
-        return (accessSpecifier == AccessSpecifier.PRIVATE) || (accessSpecifier == AccessSpecifier.PACKAGE_PRIVATE);
+        return (accessSpecifier == AccessSpecifier.PRIVATE) || (accessSpecifier == AccessSpecifier.NONE);
     }
 
     public static String makeId(CompilationUnit cu) {
@@ -193,11 +187,13 @@ public final class ASTUtils {
     }
 
     public static String makeId(VariableDeclarator variableDeclarator) {
-        return makeId(getNodeFullyQualifiedName(variableDeclarator.getParentNode()) + "." + variableDeclarator.getNameAsString());
+        return makeId(
+            getNodeFullyQualifiedName(variableDeclarator.getParentNode()) + "." + variableDeclarator.getNameAsString());
     }
 
     public static String makeId(CallableDeclaration<?> callableDeclaration) {
-        return makeId(getNodeFullyQualifiedName(callableDeclaration.getParentNode()) + "." + callableDeclaration.getDeclarationAsString());
+        return makeId(getNodeFullyQualifiedName(callableDeclaration.getParentNode()) + "."
+            + callableDeclaration.getDeclarationAsString());
     }
 
     public static String makeId(FieldDeclaration fieldDeclaration) {
@@ -205,11 +201,39 @@ public final class ASTUtils {
     }
 
     public static String makeId(EnumConstantDeclaration enumDeclaration) {
-        return makeId(getNodeFullyQualifiedName(enumDeclaration.getParentNode()) + "." + enumDeclaration.getNameAsString());
+        return makeId(
+            getNodeFullyQualifiedName(enumDeclaration.getParentNode()) + "." + enumDeclaration.getNameAsString());
     }
 
     public static String makeId(String fullPath) {
-        return MAKE_ID.matcher(fullPath).replaceAll("-");
+        if (fullPath == null || fullPath.isEmpty()) {
+            return fullPath;
+        }
+
+        StringBuilder sb = null;
+        int prevStart = 0;
+
+        int length = fullPath.length();
+        for (int i = 0; i < length; i++) {
+            char c = fullPath.charAt(i);
+            if (c == '"' || c == ' ') {
+                if (sb == null) {
+                    sb = new StringBuilder(length);
+                }
+
+                if (prevStart != i) {
+                    sb.append(fullPath, prevStart, i);
+                }
+                prevStart = i + 1;
+            }
+        }
+
+        if (sb == null) {
+            return fullPath;
+        }
+
+        sb.append(fullPath, prevStart, length);
+        return sb.toString();
     }
 
     public static String makeId(AnnotationExpr annotation, NodeWithAnnotations<?> nodeWithAnnotations) {
@@ -222,7 +246,8 @@ public final class ASTUtils {
         } else {
             idSuffix = "-" + annotationContext;
         }
-        return makeId(getNodeFullyQualifiedName(annotation.getParentNode()) + "." + annotation.getNameAsString() + idSuffix);
+        return makeId(
+            getNodeFullyQualifiedName(annotation.getParentNode()) + "." + annotation.getNameAsString() + idSuffix);
     }
 
     private static String getAnnotationContext(NodeWithAnnotations<?> nodeWithAnnotations) {
@@ -270,7 +295,7 @@ public final class ASTUtils {
 
         // otherwise there are more rules we want to consider...
         final boolean isInterfaceType = isInterfaceType(type);
-//        final boolean isNestedType = type.isNestedType();
+        //        final boolean isNestedType = type.isNestedType();
 
         if (parentNode instanceof ClassOrInterfaceDeclaration) {
             ClassOrInterfaceDeclaration parentClass = (ClassOrInterfaceDeclaration) parentNode;
@@ -334,8 +359,10 @@ public final class ASTUtils {
     }
 
     public static boolean isTypeImplementingInterface(TypeDeclaration<?> type, String interfaceName) {
-        return type.asClassOrInterfaceDeclaration().getImplementedTypes().stream()
-                .anyMatch(_interface -> _interface.getNameAsString().equals(interfaceName));
+        return type.asClassOrInterfaceDeclaration()
+            .getImplementedTypes()
+            .stream()
+            .anyMatch(_interface -> _interface.getNameAsString().equals(interfaceName));
     }
 
     public static String getNodeFullyQualifiedName(Node node) {
@@ -411,7 +438,8 @@ public final class ASTUtils {
         }
 
         // Check if there are any orphaned Javadoc comments before the additional code comments.
-        Range expectedJavadocRangeOverlap = comment.getRange().get()
+        Range expectedJavadocRangeOverlap = comment.getRange()
+            .get()
             .withBeginLine(comment.getRange().get().begin.line - 1);
 
         return orphanedComments.stream()

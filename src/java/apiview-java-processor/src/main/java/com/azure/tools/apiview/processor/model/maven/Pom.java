@@ -66,14 +66,18 @@ public class Pom implements MavenGAV {
             }
 
             // jacoco configuration
-            Node n = (Node) xPath.evaluate("/project/properties/jacoco.min.linecoverage", xmlDocument, XPathConstants.NODE);
+            Node n = (Node) xPath.evaluate("/project/properties/jacoco.min.linecoverage", xmlDocument,
+                XPathConstants.NODE);
             this.jacocoMinLineCoverage = n == null ? null : Float.parseFloat(n.getTextContent());
 
-            n = (Node) xPath.evaluate("/project/properties/jacoco.min.branchcoverage", xmlDocument, XPathConstants.NODE);
+            n = (Node) xPath.evaluate("/project/properties/jacoco.min.branchcoverage", xmlDocument,
+                XPathConstants.NODE);
             this.jacocoMinBranchCoverage = n == null ? null : Float.parseFloat(n.getTextContent());
 
             // checkstyle excludes
-            n = (Node) xPath.evaluate("/project/build/plugins/plugin/artifactId[text()='maven-checkstyle-plugin']/../configuration/excludes", xmlDocument, XPathConstants.NODE);
+            n = (Node) xPath.evaluate(
+                "/project/build/plugins/plugin/artifactId[text()='maven-checkstyle-plugin']/../configuration/excludes",
+                xmlDocument, XPathConstants.NODE);
             this.checkstyleExcludes = n == null ? null : n.getTextContent();
 
             // Maven name
@@ -86,7 +90,8 @@ public class Pom implements MavenGAV {
 
             // actual dependencies
             final String dependencyExpression = "/project/dependencies/dependency";
-            NodeList dependenciesNodeList = (NodeList) xPath.evaluate(dependencyExpression, xmlDocument, XPathConstants.NODESET);
+            NodeList dependenciesNodeList = (NodeList) xPath.evaluate(dependencyExpression, xmlDocument,
+                XPathConstants.NODESET);
             for (int i = 0; i < dependenciesNodeList.getLength(); i++) {
                 Node dep = dependenciesNodeList.item(i);
                 String depGroupId = xPath.evaluate("groupId", dep);
@@ -97,7 +102,8 @@ public class Pom implements MavenGAV {
             }
 
             // allowed dependencies
-            final String allowedDependencies = "/project/build/plugins/plugin/artifactId[text()='maven-enforcer-plugin']/../configuration/rules/bannedDependencies/includes/include";
+            final String allowedDependencies
+                = "/project/build/plugins/plugin/artifactId[text()='maven-enforcer-plugin']/../configuration/rules/bannedDependencies/includes/include";
             dependenciesNodeList = (NodeList) xPath.evaluate(allowedDependencies, xmlDocument, XPathConstants.NODESET);
             for (int i = 0; i < dependenciesNodeList.getLength(); i++) {
                 this.allowedDependencies.add(dependenciesNodeList.item(i).getTextContent().trim());
@@ -158,7 +164,8 @@ public class Pom implements MavenGAV {
         return fileExists;
     }
 
-    private Gav createGav(final XPath xPath, final Document xmlDocument, final String root) throws XPathExpressionException {
+    private Gav createGav(final XPath xPath, final Document xmlDocument, final String root)
+        throws XPathExpressionException {
         final String groupIdExpression = root + "/groupId";
         final Node groupIdNode = (Node) xPath.evaluate(groupIdExpression, xmlDocument, XPathConstants.NODE);
         String groupId = groupIdNode == null ? "" : groupIdNode.getTextContent();
@@ -175,12 +182,14 @@ public class Pom implements MavenGAV {
         // lets go up to the parent to get it from there
         if (groupId.isEmpty()) {
             final String parentGroupIdExpression = root + "/parent/groupId";
-            final Node parentGroupIdNode = (Node) xPath.evaluate(parentGroupIdExpression, xmlDocument, XPathConstants.NODE);
+            final Node parentGroupIdNode = (Node) xPath.evaluate(parentGroupIdExpression, xmlDocument,
+                XPathConstants.NODE);
             groupId = parentGroupIdNode == null ? "" : parentGroupIdNode.getTextContent();
         }
         if (version.isEmpty()) {
             final String parentVersionExpression = root + "/parent/version";
-            final Node parentVersionNode = (Node) xPath.evaluate(parentVersionExpression, xmlDocument, XPathConstants.NODE);
+            final Node parentVersionNode = (Node) xPath.evaluate(parentVersionExpression, xmlDocument,
+                XPathConstants.NODE);
             version = parentVersionNode == null ? "" : parentVersionNode.getTextContent();
         }
 

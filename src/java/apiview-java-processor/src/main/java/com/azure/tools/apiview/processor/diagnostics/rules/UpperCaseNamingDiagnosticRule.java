@@ -8,9 +8,10 @@ import com.github.javaparser.ast.CompilationUnit;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.*;
-
-import static com.azure.tools.apiview.processor.model.DiagnosticKind.*;
+import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.getClassName;
+import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.getPublicOrProtectedMethods;
+import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.makeId;
+import static com.azure.tools.apiview.processor.model.DiagnosticKind.WARNING;
 
 public class UpperCaseNamingDiagnosticRule implements DiagnosticRule {
 
@@ -29,8 +30,8 @@ public class UpperCaseNamingDiagnosticRule implements DiagnosticRule {
         getClassName(cu).ifPresent(name -> check(name, makeId(cu), listing));
 
         // check all public / protected methods
-        getPublicOrProtectedMethods(cu).forEach(methodDeclaration ->
-            check(methodDeclaration.getNameAsString(), makeId(methodDeclaration), listing));
+        getPublicOrProtectedMethods(cu).forEach(
+            methodDeclaration -> check(methodDeclaration.getNameAsString(), makeId(methodDeclaration), listing));
     }
 
     private void check(String name, String id, APIListing listing) {

@@ -42,7 +42,8 @@ public class RequiredBuilderMethodsDiagnosticRule implements DiagnosticRule {
         this.builderProtocol = builderProtocol;
     }
 
-    public RequiredBuilderMethodsDiagnosticRule add(String methodName, Function<MethodDeclaration, Optional<Diagnostic>> func) {
+    public RequiredBuilderMethodsDiagnosticRule add(String methodName,
+        Function<MethodDeclaration, Optional<Diagnostic>> func) {
         builderMethods.put(methodName, func);
         missingMethods.add(methodName);
         return this;
@@ -59,7 +60,8 @@ public class RequiredBuilderMethodsDiagnosticRule implements DiagnosticRule {
                 // of this diagnostic rule and just assume we are looking at an http protocol.
                 // This is unless the builderProtocol is null, in which case the set of rules we have
                 // will all be applied.
-                final String protocolName = typeDeclaration.getAnnotationByName(BUILDER_ANNOTATION).get()
+                final String protocolName = typeDeclaration.getAnnotationByName(BUILDER_ANNOTATION)
+                    .get()
                     .getChildNodes()
                     .stream()
                     .filter(n -> n instanceof MemberValuePair)
@@ -68,7 +70,8 @@ public class RequiredBuilderMethodsDiagnosticRule implements DiagnosticRule {
                     .map(MemberValuePair::getValue)
                     .map(Node::toString)
                     .findFirst()
-                    .orElse("http");  // TODO for now we assume that no specified protocol in the builder means we will be http
+                    .orElse(
+                        "http");  // TODO for now we assume that no specified protocol in the builder means we will be http
 
                 if (builderProtocol != null) {
                     if (!builderProtocol.equals(protocolName) || protocolName.isEmpty()) {
@@ -85,10 +88,9 @@ public class RequiredBuilderMethodsDiagnosticRule implements DiagnosticRule {
                 });
 
                 if (!missingMethods.isEmpty()) {
-                    listing.addDiagnostic(new Diagnostic(
-                        WARNING,
-                        makeId(typeDeclaration),
-                        "This builder is missing common APIs. These are not required, but please consider if the following methods should exist: " + missingMethods,
+                    listing.addDiagnostic(new Diagnostic(WARNING, makeId(typeDeclaration),
+                        "This builder is missing common APIs. These are not required, but please consider if the following methods should exist: "
+                            + missingMethods,
                         "https://azure.github.io/azure-sdk/java_introduction.html#java-service-client-builder-consistency"));
                 }
             }
@@ -117,12 +119,9 @@ public class RequiredBuilderMethodsDiagnosticRule implements DiagnosticRule {
                 String actualTypeName = ((ClassOrInterfaceType) actualType).getNameAsString();
 
                 if (!expectedType.supports(actualTypeName)) {
-                    return Optional.of(
-                        new Diagnostic(
-                            WARNING,
-                            makeId(methodDeclaration),
-                            "Incorrect type being supplied to this builder method. Expected " + expectedType +
-                                ", but was " + actualTypeName + "."));
+                    return Optional.of(new Diagnostic(WARNING, makeId(methodDeclaration),
+                        "Incorrect type being supplied to this builder method. Expected " + expectedType + ", but was "
+                            + actualTypeName + "."));
                 }
             }
 

@@ -4,5 +4,5 @@ public enum TokenModifier {
     NOTHING,
     NEWLINE,
     SPACE,
-    INDENT;
+    INDENT
 }

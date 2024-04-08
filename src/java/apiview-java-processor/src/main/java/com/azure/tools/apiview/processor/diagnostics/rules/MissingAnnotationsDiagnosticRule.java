@@ -7,33 +7,33 @@ import com.github.javaparser.ast.CompilationUnit;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.*;
-import static com.azure.tools.apiview.processor.model.DiagnosticKind.*;
+import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.getClasses;
+import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.getPackageName;
+import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.getPublicOrProtectedMethods;
+import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.makeId;
+import static com.azure.tools.apiview.processor.model.DiagnosticKind.INFO;
+import static com.azure.tools.apiview.processor.model.DiagnosticKind.WARNING;
 
 public class MissingAnnotationsDiagnosticRule implements DiagnosticRule {
 
     @Override
     public void scanIndividual(final CompilationUnit cu, final APIListing listing) {
-        getClasses(cu)
-            .filter(type -> getPackageName(type).startsWith("com.azure"))   // we only want to give this guidance to Azure SDK developers
+        getClasses(cu).filter(type -> getPackageName(type).startsWith(
+                "com.azure"))   // we only want to give this guidance to Azure SDK developers
             .forEach(typeDeclaration -> {
                 String className = typeDeclaration.getNameAsString();
 
                 if (className.endsWith("Builder")) {
                     // check if @ServiceClientBuilder annotation is present
                     if (!typeDeclaration.isAnnotationPresent("ServiceClientBuilder")) {
-                        listing.addDiagnostic(new Diagnostic(
-                            INFO,
-                            makeId(typeDeclaration),
+                        listing.addDiagnostic(new Diagnostic(INFO, makeId(typeDeclaration),
                             "Classes named *Builder are potential candidates to have the @ServiceClientBuilder annotation applied.",
                             "https://azure.github.io/azure-sdk/java_introduction.html#service-client-creation"));
                     }
                 } else if (className.endsWith("Client")) {
                     // check if the @ServiceClient annotation is present
                     if (!typeDeclaration.isAnnotationPresent("ServiceClient")) {
-                        listing.addDiagnostic(new Diagnostic(
-                            INFO,
-                            makeId(typeDeclaration),
+                        listing.addDiagnostic(new Diagnostic(INFO, makeId(typeDeclaration),
                             "Classes named *Client are potential candidates to have the @ServiceClient annotation applied.",
                             "https://azure.github.io/azure-sdk/java_introduction.html#service-client"));
                     }
@@ -53,14 +53,12 @@ public class MissingAnnotationsDiagnosticRule implements DiagnosticRule {
 
                     if (annotatedMethodCount.get() / (double) methodCount.get() < 0.75) {
                         // warn user to double check
-                        listing.addDiagnostic(new Diagnostic(
-                            WARNING,
-                            makeId(typeDeclaration),
-                        "There is a low number of methods annotated with @ServiceMethod. " +
-                                "Please review to ensure all appropriate methods have this annotation.",
+                        listing.addDiagnostic(new Diagnostic(WARNING, makeId(typeDeclaration),
+                            "There is a low number of methods annotated with @ServiceMethod. "
+                                + "Please review to ensure all appropriate methods have this annotation.",
                             "https://azure.github.io/azure-sdk/java_introduction.html#service-client"));
                     }
                 }
-        });
+            });
     }
 }

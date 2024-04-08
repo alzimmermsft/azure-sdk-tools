@@ -1,7 +1,5 @@
 package com.azure.tools.apiview.processor.model;
 
-import com.fasterxml.jackson.annotation.JsonValue;
-
 public enum TokenKind {
     TEXT(0),
     NEW_LINE(1),
@@ -42,8 +40,16 @@ public enum TokenKind {
         this.id = id;
     }
 
-    @JsonValue
     public int getId() {
         return id;
+    }
+
+    public static TokenKind fromId(int id) {
+        for (TokenKind kind : TokenKind.values()) {
+            if (kind.id == id) {
+                return kind;
+            }
+        }
+        return null;
     }
 }

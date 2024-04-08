@@ -6,7 +6,8 @@ import com.azure.tools.apiview.processor.model.Diagnostic;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.TypeDeclaration;
 
-import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.*;
+import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.getClasses;
+import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.makeId;
 import static com.azure.tools.apiview.processor.model.DiagnosticKind.WARNING;
 
 /**
@@ -18,16 +19,13 @@ public class UpperCaseEnumValuesDiagnosticRule implements DiagnosticRule {
     public void scanIndividual(final CompilationUnit cu, final APIListing listing) {
         // if the CompilationUnit is an enum, check that all of the enum values are upper case, adding a diagnostic
         // if they are not.
-        getClasses(cu)
-            .filter(TypeDeclaration::isEnumDeclaration)
+        getClasses(cu).filter(TypeDeclaration::isEnumDeclaration)
             .map(TypeDeclaration::asEnumDeclaration)
             .forEach(enumDeclaration -> {
                 enumDeclaration.getEntries().forEach(enumConstantDeclaration -> {
                     String name = enumConstantDeclaration.getName().asString();
                     if (!name.equals(name.toUpperCase())) {
-                        listing.addDiagnostic(new Diagnostic(
-                            WARNING,
-                            makeId(enumConstantDeclaration),
+                        listing.addDiagnostic(new Diagnostic(WARNING, makeId(enumConstantDeclaration),
                             "All enum constants should be upper case, using underscores as necessary between words."));
                     }
                 });

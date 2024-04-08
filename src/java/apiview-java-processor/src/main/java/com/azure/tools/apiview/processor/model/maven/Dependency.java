@@ -1,10 +1,10 @@
 package com.azure.tools.apiview.processor.model.maven;
 
 public class Dependency implements MavenGAV {
-    private String groupId;
-    private String artifactId;
-    private String version;
-    private String scope; // default scope is compile-time scope
+    private final String groupId;
+    private final String artifactId;
+    private final String version;
+    private final String scope; // default scope is compile-time scope
 
     public Dependency(String groupId, String artifactId, String version, String scope) {
         this.groupId = groupId;

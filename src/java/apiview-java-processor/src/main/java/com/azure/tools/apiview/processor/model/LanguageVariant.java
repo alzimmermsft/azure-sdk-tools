@@ -1,7 +1,5 @@
 package com.azure.tools.apiview.processor.model;
 
-import com.fasterxml.jackson.annotation.JsonValue;
-
 public enum LanguageVariant {
     DEFAULT("Default"),
     SPRING("Spring"),
@@ -14,8 +12,16 @@ public enum LanguageVariant {
     }
 
     @Override
-    @JsonValue
     public String toString() {
         return this.variantName;
+    }
+
+    public static LanguageVariant fromString(String name) {
+        for (LanguageVariant variant : LanguageVariant.values()) {
+            if (variant.toString().equals(name)) {
+                return variant;
+            }
+        }
+        return DEFAULT;
     }
 }

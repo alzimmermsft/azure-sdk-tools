@@ -26,20 +26,20 @@ public final class MavenPackageAndDescriptionDiagnosticRule implements Diagnosti
     /*
      * Default {@link Pattern} for the Maven package description.
      */
-    static final Pattern DEFAULT_MAVEN_DESCRIPTION =
-        Pattern.compile("This package contains the Microsoft Azure .* client library");
+    static final Pattern DEFAULT_MAVEN_DESCRIPTION = Pattern.compile(
+        "This package contains the Microsoft Azure .* client library");
 
     /*
      * Default guideline link for the Maven package name.
      */
-    static final String DEFAULT_MAVEN_NAME_GUIDELINE_LINK =
-        "https://azure.github.io/azure-sdk/java_introduction.html#java-maven-name";
+    static final String DEFAULT_MAVEN_NAME_GUIDELINE_LINK
+        = "https://azure.github.io/azure-sdk/java_introduction.html#java-maven-name";
 
     /*
      * Default guideline link for the Maven package description.
      */
-    static final String DEFAULT_MAVEN_DESCRIPTION_GUIDELINE_LINK =
-        "https://azure.github.io/azure-sdk/java_introduction.html#java-maven-description";
+    static final String DEFAULT_MAVEN_DESCRIPTION_GUIDELINE_LINK
+        = "https://azure.github.io/azure-sdk/java_introduction.html#java-maven-description";
 
     private final Pattern mavenNamePattern;
     private final Pattern mavenDescriptionPattern;

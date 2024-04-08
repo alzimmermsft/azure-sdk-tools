@@ -1,9 +1,9 @@
 package com.azure.tools.apiview.processor.model.maven;
 
 public class Gav implements MavenGAV {
-    private String groupId;
-    private String artifactId;
-    private String version;
+    private final String groupId;
+    private final String artifactId;
+    private final String version;
 
     public Gav(final String groupId, final String artifactId, final String version) {
         this.groupId = groupId;
@@ -24,7 +24,7 @@ public class Gav implements MavenGAV {
     }
 
     public boolean isValid() {
-        return groupId != null && artifactId != null && version != null
-                   && !groupId.isEmpty() && !artifactId.isEmpty() && !version.isEmpty();
+        return groupId != null && artifactId != null && version != null && !groupId.isEmpty() && !artifactId.isEmpty()
+            && !version.isEmpty();
     }
 }

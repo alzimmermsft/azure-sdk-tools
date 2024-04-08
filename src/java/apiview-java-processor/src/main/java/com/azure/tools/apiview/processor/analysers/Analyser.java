@@ -1,8 +1,7 @@
 package com.azure.tools.apiview.processor.analysers;
 
-
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -20,11 +19,11 @@ public interface Analyser {
      * hierarchy.
      *
      * @param allFiles A list of all files from the extracted jar file, some of which won't be relevant and can be
-     *      ignored as necessary.
+     * ignored as necessary.
      */
     void analyse(List<Path> allFiles);
 
     default void analyse(Path file) {
-        analyse(Arrays.asList(file));
+        analyse(Collections.singletonList(file));
     }
 }

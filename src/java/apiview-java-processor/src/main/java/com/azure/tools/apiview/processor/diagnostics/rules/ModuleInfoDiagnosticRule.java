@@ -11,9 +11,7 @@ import com.github.javaparser.ast.CompilationUnit;
 
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.azure.tools.apiview.processor.analysers.util.ASTUtils.makeId;
 
@@ -36,56 +34,58 @@ public class ModuleInfoDiagnosticRule implements DiagnosticRule {
         // If present, validate that the module name is the same as the base package name
 
         // Base package name is the package that has the shortest name in a module
-        String basePackageName = packages
-                .stream()
-                .min(Comparator.comparingInt(String::length))
-                .orElse("");
+        String basePackageName = packages.stream().min(Comparator.comparingInt(String::length)).orElse("");
 
-        // Check for the presence of module-info
-        Optional<Token> moduleInfoToken = listing.getTokens().stream()
-                .filter(token -> token.getKind().equals(TokenKind.TYPE_NAME))
-                .filter(token -> token.getDefinitionId() != null && token.getDefinitionId().equals(JavaASTAnalyser.MODULE_INFO_KEY))
-                .findFirst();
+        Token moduleInfoToken = null;
+        Set<String> exportsPackages = new HashSet<>();
 
-        // Collect all packages that are exported
-        Set<String> exportsPackages = listing.getTokens().stream()
-                .filter(token -> token.getKind().equals(TokenKind.TYPE_NAME))
-                .filter(token -> token.getDefinitionId() != null && token.getDefinitionId().startsWith("module-info" +
-                        "-exports"))
-                .map(token -> token.getValue())
-                .collect(Collectors.toSet());
+        for (Token token : listing.getTokens()) {
+            if (!TokenKind.TYPE_NAME.equals(token.getKind()) || token.getDefinitionId() == null) {
+                continue;
+            }
 
-        if (!moduleInfoToken.isPresent()) {
+            // Check for the presence of module-info
+            if (token.getDefinitionId().equals(JavaASTAnalyser.MODULE_INFO_KEY) && moduleInfoToken == null) {
+                moduleInfoToken = token;
+            }
+
+            // Collect all packages that are exported
+            if (token.getDefinitionId().startsWith("module-info-exports")) {
+                exportsPackages.add(token.getValue());
+            }
+        }
+
+        if (moduleInfoToken == null) {
             listing.addDiagnostic(new Diagnostic(DiagnosticKind.WARNING, makeId(basePackageName),
-                    "This module is missing module-info.java"));
+                "This module is missing module-info.java"));
             return;
         }
 
-        String moduleName = moduleInfoToken.get().getValue();
+        String moduleName = moduleInfoToken.getValue();
         if (moduleName != null) {
             // special casing azure-core as the base package doesn't have any classes and hence not included in the
             // list of packages
             if (!moduleName.equals(basePackageName) && !moduleName.equals("com.azure.core")) {
                 // add warning message if the module name does not match the base package name
-                listing.addDiagnostic(new Diagnostic(DiagnosticKind.WARNING,
-                        makeId(JavaASTAnalyser.MODULE_INFO_KEY), "Module name should be the same as base package " +
-                        "name: " + basePackageName));
+                listing.addDiagnostic(new Diagnostic(DiagnosticKind.WARNING, makeId(JavaASTAnalyser.MODULE_INFO_KEY),
+                    "Module name should be the same as base package " + "name: " + basePackageName));
             }
 
             // Validate that all public packages are exported in module-info
             packages.stream()
-                    .filter(publicPackage -> !exportsPackages.contains(publicPackage))
-                    .forEach(missingExport -> {
-                        listing.addDiagnostic(new Diagnostic(DiagnosticKind.ERROR,
-                                makeId(JavaASTAnalyser.MODULE_INFO_KEY), "Public package not exported: " + missingExport));
-                    });
+                .filter(publicPackage -> !exportsPackages.contains(publicPackage))
+                .forEach(missingExport -> {
+                    listing.addDiagnostic(new Diagnostic(DiagnosticKind.ERROR, makeId(JavaASTAnalyser.MODULE_INFO_KEY),
+                        "Public package not exported: " + missingExport));
+                });
 
             exportsPackages.stream()
-                    .filter(exportedPackage -> exportedPackage.contains(".implementation"))
-                    .forEach(implementationPackage -> {
-                        listing.addDiagnostic(new Diagnostic(DiagnosticKind.ERROR,
-                                makeId(JavaASTAnalyser.MODULE_INFO_KEY + "-exports-" + implementationPackage), "Implementation package should not be exported - " + implementationPackage));
-                    });
+                .filter(exportedPackage -> exportedPackage.contains(".implementation"))
+                .forEach(implementationPackage -> {
+                    listing.addDiagnostic(new Diagnostic(DiagnosticKind.ERROR,
+                        makeId(JavaASTAnalyser.MODULE_INFO_KEY + "-exports-" + implementationPackage),
+                        "Implementation package should not be exported - " + implementationPackage));
+                });
         }
     }
 }
